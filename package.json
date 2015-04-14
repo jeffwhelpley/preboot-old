@@ -1,0 +1,23 @@
+{
+  "name": "angular-preboot",
+  "version": "0.0.1",
+  "description": "Record events before Angular bootstrap",
+  "main": "gulpfile.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jeffwhelpley/angular-preboot"
+  },
+  "author": "Jeff Whelpley",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jeffwhelpley/angular-preboot/issues"
+  },
+  "homepage": "https://github.com/jeffwhelpley/angular-preboot",
+  "devDependencies": {
+    "gulp": "^3.8.11",
+    "gulp-connect": "^2.2.0"
+  }
+}

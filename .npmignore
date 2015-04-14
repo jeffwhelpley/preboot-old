@@ -1,0 +1,9 @@
+.idea
+node_modules
+bower_components
+test/coverage
+config/env.js
+newrelic_agent.log
+coverage.html
+dist
+temp
