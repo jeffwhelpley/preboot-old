@@ -1,8 +1,93 @@
 <html>
-<head>
-
-</head>
 <body>
-    hello, world yo yo
+    <form>
+        <input type="text" name="one" (keyup)="blah()"><br/>
+        <input type="text" name="two" on-keyup="blah()"><br/>
+        <input type="text" name="three"><br/>
+        <button (click)="doit()">Click here</button>
+        <br/><br/>
+        <a href="" onclick="return log()">Log events to console</a>
+    </form>
+    <script>
+        (function () {
+
+            // this is where we will store all the preboot events
+            var preboot = window.angularPreBootEvents = [];
+
+            // regular expression for finding event
+            var eventPattern = /^(on\-.*)|(\(.*\))$/;
+
+            /**
+             * This is from Crockford to walk the DOM:
+             *  http://www.javascriptcookbook.com/article/Traversing-DOM-subtrees-with-a-recursive-walk-the-DOM-function/
+             *
+             * @param node The current node (to do entire document, pass in document.body)
+             * @param func Function called for each node in the tree
+             */
+            function walkDOM(node, func) {
+                func(node);
+                node = node.firstChild;
+                while (node) {
+                    walkDOM(node,func);
+                    node = node.nextSibling;
+                }
+            }
+
+            /**
+             * For a given node, add an event listener based on the given attribute. The attribute
+             * must match the Angular pattern for event handlers (i.e. either (event)='blah()' or
+             * on-event='blah'
+             *
+             * @param node An element in the DOM
+             * @param attr An attribute in the element
+             */
+            function addListener(node, attr) {
+                var name = attr.name;
+
+                // if attribute name doesn't match Angular event handlers, don't do anything
+                if (!eventPattern.test(name)) {
+                    return;
+                }
+
+                // extract event name from the () or on- (TODO: replace this w regex)
+                name = name.charAt(0) === '(' ?
+                        name.substring(1, name.length - 1) :    // remove parenthesis
+                        name.substring(3);                      // remove on-
+
+                // add listener which will record all events in global preboot object
+                node.addEventListener(name, function (event) {
+
+                    // if we are having angular handle events, we don't want to do the default
+                    event.preventDefault();
+
+                    // push event and other relevant info onto the preboot events
+                    preboot.push({
+                        node:       node,
+                        event:      event,
+                        name:       name,
+                        handler:    attr.value,
+                        time:       (new Date()).getTime()
+                    })
+                });
+            }
+
+            // with each DOM node, we check the attributes for event listeners
+            walkDOM(document.body, function (node) {
+                var attrs = node.attributes;
+                if (attrs) {
+                    for (var i = 0; i < attrs.length; i++) {
+                        addListener(node, attrs[i]);
+                    }
+                }
+            });
+        })();
+
+        // function to test that we recorded all events
+        function log() {
+            console.log(angularPreBootEvents);
+            return false;
+        }
+
+    </script>
 </body>
 </html>
