@@ -7,15 +7,38 @@
         <button (click)="doit()">Click here</button>
         <br/><br/>
         <a href="" onclick="return log()">Log events to console</a>
+        <br/><br/>
+        <a href="" onclick="angularPreBoot.cleanup(); return false;">Do cleanup</a>
     </form>
     <script>
         (function () {
 
             // this is where we will store all the preboot events
-            var preboot = window.angularPreBootEvents = [];
+            var preboot = window.angularPreBoot = { events: [] };
+
+            // maintain the list of event listeners so we can remove them later
+            var eventListeners = [];
 
             // regular expression for finding event
             var eventPattern = /^(on\-.*)|(\(.*\))$/;
+
+            /**
+             * Attach function to preboot that can be used to cleanup all resources.
+             * This includes event handlers and the events themselves.
+             */
+            preboot.cleanup = function () {
+                var listener, node;
+
+                // first cleanup the event listeners
+                for (var i = 0; i < eventListeners.length; i++) {
+                    listener = eventListeners[i];
+                    node = listener.node;
+                    node.removeEventListener(listener.name, listener.handler);
+                }
+
+                // now remove the events
+                preboot.events = [];
+            };
 
             /**
              * This is from Crockford to walk the DOM:
@@ -54,21 +77,26 @@
                         name.substring(1, name.length - 1) :    // remove parenthesis
                         name.substring(3);                      // remove on-
 
-                // add listener which will record all events in global preboot object
-                node.addEventListener(name, function (event) {
+                function handler(event) {
 
                     // if we are having angular handle events, we don't want to do the default
                     event.preventDefault();
 
                     // push event and other relevant info onto the preboot events
-                    preboot.push({
+                    preboot.events.push({
                         node:       node,
                         event:      event,
                         name:       name,
                         handler:    attr.value,
                         time:       (new Date()).getTime()
                     })
-                });
+                }
+
+                // add listener which will record all events in global preboot object
+                node.addEventListener(name, handler);
+
+                // add handler to list so it can be removed later
+                eventListeners.push({ node: node, name: name, handler: handler });
             }
 
             // with each DOM node, we check the attributes for event listeners
@@ -84,7 +112,7 @@
 
         // function to test that we recorded all events
         function log() {
-            console.log(angularPreBootEvents);
+            console.log(angularPreBoot.events);
             return false;
         }
 
