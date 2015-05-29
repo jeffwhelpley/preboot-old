@@ -9,13 +9,13 @@
         <br/><br/>
         <a href="" onclick="return log()">Log events to console</a>
         <br/><br/>
-        <a href="" onclick="angularPreBoot.cleanup(); return false;">Do cleanup</a>
+        <a href="" onclick="preboot.cleanup(); return false;">Do cleanup</a>
     </form>
     <script>
         (function () {
 
             // this is where we will store all the preboot events
-            var preboot = window.angularPreBoot = { events: [] };
+            var preboot = window.preboot = { events: [] };
 
             // maintain the list of event listeners so we can remove them later
             var eventListeners = [];
@@ -145,11 +145,22 @@
             // as soon as script loads, start finding preboot elements and attaching handlers
             findAndAttachPreBootHandlers();
 
+
+            //*********************** OPTION 3 - PASS IN SELECTORS *********************
+
+            //TODO: this
+
+
+
+            //*********************** PLAYBACK *********************
+
+            //TODO: add playback
+
         })();
 
         // function to test that we recorded all events
         function log() {
-            console.log(angularPreBoot.events);
+            console.log(preboot.events);
             return false;
         }
 
