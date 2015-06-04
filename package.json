@@ -2,7 +2,7 @@
   "name": "preboot",
   "version": "0.0.1",
   "description": "Record and play back client side events",
-  "main": "gulpfile.js",
+  "main": "src/server/preboot_server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -17,7 +17,9 @@
   },
   "homepage": "https://github.com/jeffwhelpley/preboot",
   "devDependencies": {
-    "gulp": "^3.8.11",
     "gulp-connect": "^2.2.0"
+  },
+  "dependencies": {
+    "gulp": "^3.9.0"
   }
 }
