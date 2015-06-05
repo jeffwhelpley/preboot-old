@@ -7,35 +7,118 @@
  * to generate the client side preboot JS that should be inserted
  * inline into a script tag in the HEAD section of an HTML document.
  */
-var gulp = require('gulp');
+var Q           = require('q');
+//var gulp        = require('gulp');
+var concat      = require('gulp-concat');
+var uglify      = require('gulp-uglify');
+//var buffer      = require('vinyl-buffer');
+var browserify  = require('browserify');
+var stream      = require('stream');
+var streamqueue = require('streamqueue');
+var objMode     = { objectMode: true };
 
 /**
- * This is the main function for the preboot library. The input
- * is an options object while the output is a string with all the
- * client side preboot JavaScript code.
- *
- * @param opts The available options are:
- *              listen - String or Object (default 'attributes'). If string is name of strategy. If object, conforms to this:
- *                                      {
- *                                          name: String,       // name of string which must match file in listen folder if no strategy function provided
- *                                          config: {},         // config data passed into the strategy
- *                                          strategy: Function  // custom strategy implementation
- *                                      }
- *              replay - String or Object (default 'rerender'). If string is name of strategy. If object, conforms to this:
- *                                      {
- *                                          name: String,       // name of string which must match file in replay folder if no strategy function provided
- *                                          config: {},         // config data passed into the strategy
- *                                          strategy: Function  // custom strategy implementation
- *                                      }
- *              uglify Boolean - If true will uglify the JavaScript string returned (default true)
- *              focus Boolean - If true, will track focus and retain after bootstrap complete
- *              completeEvent String - Event that is raised on the document when the client has bootstrapped (default BootstrapComplete)
+ * Generate preboot options from the input options
+ * @param opts
  */
-function generateClientCode(opts) {
+function getPrebootOptions(opts) {
+    var optsStr = JSON.stringify(opts, function (key, value) {
 
+        // if function do toString()
+        if (!!(value && value.constructor && value.call && value.apply)) {
+            return value.toString();
+        }
+        else {
+            return value;
+        }
+    });
+
+    return 'var prebootOptions = ' + optsStr;
+}
+
+/**
+ * Get stream of string for prebootOptions
+ * @param opts
+ * @returns {*}
+ */
+function getPrebootOptionsStream(opts) {
+    var s = new stream.Readable();
+    s._read = function noop() {};
+    s.push(getPrebootOptions(opts));
+    s.push(null);
+    return s;
+}
+
+/**
+ * Get the client code as a stream
+ * @param opts
+ * @returns {*}
+ */
+function getClientCodeStream(opts) {
+    opts = opts || {};
+
+    var clientCodeStream = browserify({ entries: 'src/client/preboot_client.js' });
+
+    if (!opts.focus) {
+        clientCodeStream.ignore('focus_manager.js');
+    }
+
+    if (!opts.buffer) {
+        clientCodeStream.ignore('buffer_manager.js');
+    }
+
+    if (!opts.focus && opts.replay !== 'rerender') {
+        clientCodeStream.ignore('find_client_node.js');
+    }
+
+    //return clientCodeStream.bundle();
+
+    var outputStream = streamqueue(objMode,
+        getPrebootOptionsStream(opts),  // var prebootOptions = {}
+        clientCodeStream.bundle()       // the browserified client code
+    )
+        .pipe(concat('preboot.js'));
+
+    // uglify if the option is passed in
+    return opts.uglify ? outputStream.pipe(uglify()) : outputStream;
+}
+
+/**
+ * Get client code as a string
+ * @param opts
+ * @param done
+ * @return Promise
+ */
+function getClientCode(opts, done) {
+    var deferred = Q.defer();
+    var clientCode = '';
+
+    getClientCodeStream(opts)
+        .on('data', function (chunk) {
+            clientCode += chunk;
+        })
+        .on('error', function (err) {
+            if (done) {
+                done(err);
+            }
+
+            deferred.reject(err);
+        })
+        .on('end', function () {
+            if (done) {
+                done(null, clientCode);
+            }
+
+            deferred.resolve(clientCode);
+        });
+
+    return deferred.promise;
 }
 
 // functions exposed as API to the preboot library when required by node
 module.exports = {
-    generateClientCode: generateClientCode
+    getPrebootOptions: getPrebootOptions,
+    getPrebootOptionsStream: getPrebootOptionsStream,
+    getClientCodeStream: getClientCodeStream,
+    getClientCode: getClientCode
 };

@@ -6,6 +6,8 @@
  */
 var eventListeners = [];
 var events = [];
+
+/* jshint camelcase: false */
 var listenStrategies = { attributes: true, event_bindings: true, list: true };
 var replayStrategies = { hydrate: true, rerender: true };
 
@@ -29,7 +31,7 @@ function addListener(node, eventName) {
             event:      event,
             name:       eventName,
             time:       (new Date()).getTime()
-        })
+        });
     }
 
     // add the actual event listener and keep a ref so we can remove the listener during cleanup
@@ -95,7 +97,7 @@ function replayEvents(document, strategies) {
     }
 
     // most of the time there will just be one strategy, but more than one can be used
-    var i, strategy, replayEvents;
+    var i, strategy, replayEvts;
     for (i = 0; i < strategies.length; i++) {
         strategy = strategies[i];
 
@@ -105,10 +107,10 @@ function replayEvents(document, strategies) {
         }
 
         // we either use custom strategy or one from the listen dir
-        replayEvents = strategy.replayEvents || require('./replay/replay_after_' + strategy.name).replayEvents;
+        replayEvts = strategy.replayEvents || require('./replay/replay_after_' + strategy.name).replayEvents;
 
         // get array of objs with 1 node and 1 event; add event listener for each
-        events = replayEvents(document, events, strategy.config);
+        events = replayEvts(document, events, strategy.config);
     }
 
     //TODO: figure out better solution for remaining events

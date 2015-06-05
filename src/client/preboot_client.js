@@ -21,45 +21,54 @@
  * the opts input object. In the future we will optimize the amount of code
  * needed by doing custom builds where the code not needed would not be
  * included in the final client side JS generated.
- */
-var eventManager = require('./event_manager');
-var focusManager = require('./focus/focus_manager');
-var switchBuffer = require('./buffer/switch_buffer');
-
-/**
- * This is called in the head section of HTML with the following params:
- * @param document Usually the browser document, but can be mocked for testing
+ *
+ * @param document
  * @param opts An object that contain any of the following values:
- *              listen - An array of object that contains:
+ *              listen - An array of objects that contain:
  *                          name - the name of the strategy (default attributes)
  *                          config - values passed into the strategy
  *                          getNodeEvents - a custom strategy implementation (params document and config)
-*               replay - An array of object that contains:
+ *              replay - An array of objects that contain:
  *                          name - the name of the strategy (default rerender)
  *                          config - values passed into the strategy
  *                          getNodeEvents - a custom strategy implementation (params document and config)
  *              focus - Boolean value if true, will keep track of focus on the page (true by default)
  *              buffer - Boolean value if true will switch buffers (see switch_buffer for details); default false
+ *              serverRoot - selector to get the server root node
+ *              clientRoot - selector to get the client root node
  *              completeEvent - Name of event that will be raised on the document
  *                       when the client application bootstrap has completed
- *
  */
-module.exports = function prebootClient(document, opts) {
+(function (document, opts) {
+    var eventManager = require('./event_manager');
+    var focusManager = require('./focus/focus_manager');
+    var bufferManager = require('./buffer/buffer_manager');
+
     opts = opts || {};                                      // set default value for opts
+
+    if (opts.buffer) {
+        bufferManager.hideClient(document, opts.clientRoot);
+    }
 
     eventManager.startListening(document, opts.listen);     // add all the event handlers
 
     if (opts.focus) {
-        focusManager.trackFocus();                          // start tracking focus on the page
+        focusManager.startTracking();                       // start tracking focus on the page
     }
 
     // listen for bootstrap complete event
     document.addEventListener(opts.completeEvent || 'BootstrapComplete', function () {
+        if (opts.focus) { focusManager.stopTracking(); }    // stop tracking focus so we retain the last focus
+
         eventManager.replayEvents(opts.replay);             // replay events
 
-        if (opts.buffer) { switchBuffer(); }                // switch buffers if an option
+        // now that we have replayed the events, if a buffer exists switch it so client view displayed
+        if (opts.buffer) {
+            bufferManager.switchBuffer(document, opts.clientRoot, opts.serverRoot);
+        }
+
         if (opts.focus) { focusManager.setFocus(); }        // set focus if an option
 
         eventManager.cleanup();                             // do final event cleanup
     });
-};
+})(window.document, window.prebootOptions);

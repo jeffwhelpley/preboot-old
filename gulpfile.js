@@ -1,8 +1,14 @@
+/**
+ * Author: Jeff Whelpley
+ * Date: 2/25/14
+ *
+ * Build for fakeblock
+ */
 var gulp    = require('gulp');
-var connect = require('gulp-connect');
+var taste   = require('taste');
+var batter  = require('batter');
 
-gulp.task('server', function () {
-    connect.server();
+batter.whip(gulp, taste, {
+    targetDir: __dirname + '/src',
+    unitTargetCode: 'src/**/*.js'
 });
-
-gulp.task('default', ['server']);

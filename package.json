@@ -17,9 +17,19 @@
   },
   "homepage": "https://github.com/jeffwhelpley/preboot",
   "devDependencies": {
-    "gulp-connect": "^2.2.0"
+    "batter": "0.0.41",
+    "gulp-connect": "^2.2.0",
+    "karma": "^0.12.36",
+    "taste": "^0.1.66"
   },
   "dependencies": {
-    "gulp": "^3.9.0"
+    "browserify": "^10.2.3",
+    "gulp": "^3.9.0",
+    "gulp-concat": "^2.5.2",
+    "gulp-uglify": "^1.2.0",
+    "lodash": "^3.9.3",
+    "q": "^1.4.1",
+    "streamqueue": "^0.1.3",
+    "vinyl-buffer": "^1.0.0"
   }
 }
