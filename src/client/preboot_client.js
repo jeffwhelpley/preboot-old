@@ -40,9 +40,9 @@
  *                       when the client application bootstrap has completed
  */
 (function (document, opts) {
-    var eventManager = require('./event_manager');
-    var focusManager = require('./focus/focus_manager');
-    var bufferManager = require('./buffer/buffer_manager');
+    var eventManager = require('event_manager');
+    var focusManager = require('focus/focus_manager');
+    var bufferManager = require('buffer/buffer_manager');
 
     opts = opts || {};                                      // set default value for opts
 

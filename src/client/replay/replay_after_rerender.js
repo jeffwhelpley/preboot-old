@@ -6,7 +6,7 @@
  * the page so reboot will need to find the element in the new client
  * rendered DOM that matches the element it has in memory.
  */
-var findClientNode = require('../find/find_client_node');
+var findClientNode = require('find/find_client_node');
 
 /**
  * Loop through all events and replay each by trying to find a node

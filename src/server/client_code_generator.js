@@ -6,19 +6,12 @@
  * Used to generate client code on the server
  */
 var Q           = require('q');
-var gulp        = require('gulp');
-var concat      = require('gulp-concat');
 var uglify      = require('gulp-uglify');
-var streamify   = require('gulp-streamify');
 var insert      = require('gulp-insert');
 var source      = require('vinyl-source-stream');
 var buffer      = require('vinyl-buffer');
 var eventStream = require('event-stream');
-var through     = require('through2');
 var browserify  = require('browserify');
-var stream      = require('stream');
-var streamqueue = require('streamqueue');
-var objMode     = { objectMode: true };
 
 /**
  * Generate preboot options from the input options
@@ -26,6 +19,8 @@ var objMode     = { objectMode: true };
  */
 function getPrebootOptions(opts) {
     var optsStr = JSON.stringify(opts, function (key, value) {
+
+        //TODO: convert some convenience values like listen: 'event_bindings'
 
         // if function do toString()
         if (!!(value && value.constructor && value.call && value.apply)) {
@@ -36,7 +31,7 @@ function getPrebootOptions(opts) {
         }
     });
 
-    return 'var prebootOptions = ' + optsStr + ';';
+    return 'var prebootOptions = ' + optsStr + ';\n\n';
 }
 
 /**
@@ -47,7 +42,9 @@ function getPrebootOptions(opts) {
 function getClientCodeStream(opts) {
     opts = opts || {};
 
-    var clientCodeStream = browserify({ entries: 'src/client/preboot_client.js' });
+    var clientCodeStream = browserify({
+        entries: ['src/client/preboot_client.js']
+    });
 
     if (!opts.focus) {
         clientCodeStream.ignore('focus_manager.js');
