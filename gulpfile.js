@@ -14,6 +14,7 @@
  * From build dir:
  *                      test.karma  Will run karma tests
  *                      play        Run webserver with livereload for playing with example code
+ *                      build       Build the client side code into the dist folder
  */
 var gulp    = require('gulp');
 var taste   = require('taste');

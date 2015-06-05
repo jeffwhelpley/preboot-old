@@ -20,6 +20,8 @@
     "batter": "0.0.41",
     "event-stream": "^3.3.1",
     "gulp-insert": "^0.4.0",
+    "gulp-livereload": "^3.8.0",
+    "gulp-rename": "^1.2.2",
     "handlebars": "^3.0.3",
     "hapi": "^8.6.1",
     "karma": "^0.12.36",

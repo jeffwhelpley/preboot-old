@@ -5,7 +5,7 @@
  *
  * Manage focus
  */
-var findClientNode = require('find/find_client_node');
+var findClientNode = require('../find/find_client_node');
 var currentFocus = null;
 var trackingEnabled = false;
 
