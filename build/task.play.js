@@ -27,5 +27,7 @@ module.exports = function (gulp, opts) {
         gulp.watch(['play/play.html'], function () {
             nodemon.restart();
         });
+
+        gulp.watch('src/**/*.js', ['build']);
     };
 };

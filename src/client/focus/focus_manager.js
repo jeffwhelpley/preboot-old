@@ -5,7 +5,7 @@
  *
  * Manage focus
  */
-var findClientNode = require('../find/find_client_node');
+var domSelector = require('../select/dom_selector');
 var currentFocus = null;
 var trackingEnabled = false;
 
@@ -16,6 +16,10 @@ var trackingEnabled = false;
  */
 function checkFocus(document) {
     if (trackingEnabled) {
+
+        if (document.activeElement && document.activeElement !== currentFocus) {
+            console.log('focus changed to ' + document.activeElement.tagName);
+        }
 
         // if no active element, keep a ref for the last known one
         currentFocus = document.activeElement || currentFocus;
@@ -32,6 +36,8 @@ function checkFocus(document) {
  * @param document
  */
 function startTracking(document) {
+    console.log('starting to track focus');
+
     trackingEnabled = true;
     checkFocus(document);
 }
@@ -40,14 +46,20 @@ function startTracking(document) {
  * This will stop currentFocus ref from changing
  */
 function stopTracking() {
+    console.log('stopping focus tracking');
     trackingEnabled = false;
 }
 
 /**
  * Set focus at the last known location
+ * @param document
+ * @param serverRoot
+ * @param clientRoot
  */
-function setFocus() {
-    var clientNode = findClientNode(currentFocus);
+function setFocus(document, serverRoot, clientRoot) {
+    console.log('attempting to set focus to ' + (currentFocus && currentFocus.tagName));
+
+    var clientNode = domSelector.findClientNode(document, currentFocus, serverRoot, clientRoot);
     if (clientNode) {
         clientNode.focus();
 

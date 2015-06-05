@@ -9,7 +9,14 @@ var rename = require('gulp-rename');
 var clientCodeGenerator = require('../src/server/client_code_generator');
 
 module.exports = function (gulp, opts) {
-    var prebootOptions = opts.prebootOptions || {};
+    var prebootOptions = opts.prebootOptions || {
+            focus:          true,
+            buffer:         false,
+            keypress:       true,
+            serverRoot:     'div.server',
+            clientRoot:     'div.client',
+            completeEvent:  'BootstrapComplete'
+        };
 
     return function () {
         return clientCodeGenerator.getClientCodeStream(prebootOptions)

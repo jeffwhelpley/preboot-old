@@ -8,6 +8,7 @@ var handlebars  = require('handlebars');
 var Hapi        = require('hapi');
 var server      = new Hapi.Server();
 var preboot     = require('../src/server/preboot_server');
+var generator   = require('../src/server/client_code_generator');
 
 server.connection({ port: 3000 });
 
@@ -26,21 +27,33 @@ server.route({
     path:       '/',
 
     handler: function (request, reply) {
-
-        // generate the client code (NOTE: in prod would just generate this ahead of time)
-        preboot.getClientCode({
-            listen:         [{ name: 'event_bindings' }],
+        var opts = {
+            listen:         [{ name: 'attributes' }],
             replay:         [{ name: 'rerender' }],
             focus:          true,
             buffer:         false,
-            serverRoot:     'app.server-root',
-            clientRoot:     'app.client-root',
+            keypress:       true,
+            serverRoot:     'div.server',
+            clientRoot:     'div.client',
             completeEvent:  'BootstrapComplete'
-        })
-            .then(function (clientCode) {
-                reply.view('play', { prebootClientCode: clientCode });
-            });
+        };
+
+        // generate the client code (NOTE: in prod would just generate this ahead of time)
+        //preboot.getClientCode(opts)
+        //    .then(function (clientCode) {
+        //        reply.view('play', { prebootClientCode: clientCode });
+        //    });
+
+        // put this in head to test sending preboot client code in through template
+
+        reply.view('play', { prebootClientCode: generator.getPrebootOptions(opts) });
     }
+});
+
+server.route({
+    method:     'GET',
+    path:       '/dist/{path*}',
+    handler:    { directory: { path: './dist', listing: false, index: false } }
 });
 
 server.start(function () {

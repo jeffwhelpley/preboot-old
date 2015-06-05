@@ -6,7 +6,7 @@
  * the page so reboot will need to find the element in the new client
  * rendered DOM that matches the element it has in memory.
  */
-var findClientNode = require('../find/find_client_node');
+var domSelector = require('../select/dom_selector');
 
 /**
  * Loop through all events and replay each by trying to find a node
@@ -14,9 +14,10 @@ var findClientNode = require('../find/find_client_node');
  *
  * @param document
  * @param events
+ * @param config
  * @returns {Array}
  */
-function replayEvents(document, events) {
+function replayEvents(document, events, config) {
     var i, eventData, serverNode, clientNode, event;
     var remainingEvents = [];
 
@@ -25,12 +26,16 @@ function replayEvents(document, events) {
         eventData = events[i];
         event = eventData.event;
         serverNode = eventData.node;
-        clientNode = findClientNode(document, serverNode);
+
+        console.log('attempting to find ' + serverNode.tagName + ' for replay');
+        clientNode = domSelector.findClientNode(document, serverNode, config.serverRoot, config.clientRoot);
 
         if (clientNode) {
+            console.log('found node ' + clientNode.tagName + ' and dispatching event');
             clientNode.dispatchEvent(event);
         }
         else {
+            console.log('did not find node for ' + clientNode.tagName);
             remainingEvents.push(eventData);
         }
     }

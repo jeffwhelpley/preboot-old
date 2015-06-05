@@ -18,14 +18,30 @@ var replayStrategies = { hydrate: true, rerender: true };
  *
  * @param node An element in the DOM
  * @param eventName The name of the event
+ * @param shouldPreventDefault
  */
-function addListener(node, eventName) {
+function addListener(node, eventName, shouldPreventDefault) {
 
     // this is what will be called when the event occurs
     function handler(event) {
 
         // we want to wait until client bootstraps so don't allow default action
-        event.preventDefault();
+        if (shouldPreventDefault) {
+            event.preventDefault();
+        }
+
+
+
+
+        //TODO: only potentially do switch over when user tabs out
+        //TODO: spinner if user clicks on a button (how would user define this)
+        // basically, for event, provide alternative action from limited list:
+        // spinner, send raise a diff event
+
+
+
+
+
         events.push({
             node:       node,
             event:      event,
@@ -50,19 +66,17 @@ function addListener(node, eventName) {
  */
 function startListening(document, strategies) {
 
-    // default listen strategy is 'attributes' which looks for a specific attribute in the DOM
-    strategies = strategies || [{ name: 'attributes' }];
-
     // if strategies param is not an array just throw an error
     // preboot_server will handle all the nice type conversions for user convenience
-    if (strategies.constructor !== Array) {
+    if (!strategies || strategies.constructor !== Array) {
         throw new Error('listen param must be array');
     }
 
     // most of the time there will just be one strategy, but more than one can be used
-    var i, j, strategy, getNodeEvents, nodeEvents;
+    var i, j, strategy, getNodeEvents, nodeEvents, nodeEvent, preventDefault;
     for (i = 0; i < strategies.length; i++) {
         strategy = strategies[i];
+        preventDefault = strategy.config && strategy.config.preventDefault;
 
         // a strategy must either have getNodeEvents (i.e. a custom strategy) or be in list of valid strategies
         if (!strategy.getNodeEvents && !listenStrategies[strategy.name]) {
@@ -73,9 +87,12 @@ function startListening(document, strategies) {
         getNodeEvents = strategy.getNodeEvents || require('./src/client/listen/listen_by_' + strategy.name + '.js').getNodeEvents;
 
         // get array of objs with 1 node and 1 event; add event listener for each
-        nodeEvents = getNodeEvents(document);
+        nodeEvents = getNodeEvents(document, strategy.config);
         for (j = 0; j < nodeEvents.length; j++) {
-            addListener(nodeEvents[j].node, nodeEvents[j].eventName);
+            nodeEvent = nodeEvents[j];
+
+            console.log('listening to ' + JSON.stringify(nodeEvent));
+            addListener(nodeEvent.node, nodeEvent.eventName, preventDefault);
         }
     }
 }
@@ -84,22 +101,24 @@ function startListening(document, strategies) {
  * Replay events
  * @param document
  * @param strategies
+ * @param serverRoot
+ * @param clientRoot
  */
-function replayEvents(document, strategies) {
-
-    // default replay strategy is rerender
-    strategies = strategies || [{ name: 'rerender' }];
+function replayEvents(document, strategies, serverRoot, clientRoot) {
 
     // if strategies param is not an array just throw an error
     // preboot_server will handle all the nice type conversions for user convenience
-    if (strategies.constructor !== Array) {
+    if (!strategies || strategies.constructor !== Array) {
         throw new Error('replay param must be array');
     }
 
     // most of the time there will just be one strategy, but more than one can be used
-    var i, strategy, replayEvts;
+    var i, strategy, replayEvts, config;
     for (i = 0; i < strategies.length; i++) {
         strategy = strategies[i];
+        config = strategy.config || {};
+        config.serverRoot = serverRoot;
+        config.clientRoot = clientRoot;
 
         // a strategy must either have replayEvents (i.e. a custom strategy) or be in list of valid strategies
         if (!strategy.replayEvents && !replayStrategies[strategy.name]) {
@@ -127,6 +146,8 @@ function replayEvents(document, strategies) {
  */
 function cleanup() {
     var listener, node;
+
+    console.log('cleaning up listeners');
 
     // first cleanup the event listeners
     for (var i = 0; i < eventListeners.length; i++) {

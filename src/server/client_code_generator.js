@@ -65,6 +65,14 @@ function normalizeOptions(opts) {
         return _.isString(val) ? { name: val } : val;
     });
 
+    // if keypress, add strategy for capturing all keypress events
+    if (opts.keypress) {
+        opts.listen.push({ name: 'list', config: { eventsBySelector: {
+            'input[type="text"]':   ['keypress'],
+            'textarea':             ['keypress']
+        }}})
+    }
+
     return opts;
 }
 
@@ -78,6 +86,8 @@ function normalizeOptions(opts) {
  */
 function getClientCodeStream(opts) {
     opts = normalizeOptions(opts);
+    var listenStrategiesRequired = {};
+    var replayStrategiesRequired = {};
 
     // client code entry file
     var b = browserify({
@@ -85,21 +95,25 @@ function getClientCodeStream(opts) {
     });
 
     // add the listen strategy files to the bundle
-    var i, strategy;
+    var i, strategy, name;
     for (i = 0; i < opts.listen.length; i++) {
         strategy = opts.listen[i];
+        name = strategy.name;
 
-        if (listenStrategies[strategy.name]) {
-            b.require('./src/client/listen/listen_by_' + strategy.name + '.js');
+        if (listenStrategies[name] && !listenStrategiesRequired[name]) {
+            b.require('./src/client/listen/listen_by_' + name + '.js');
+            listenStrategiesRequired[name] = true;
         }
     }
 
     // add the replay strategy files to teh bundle
     for (i = 0; i < opts.replay.length; i++) {
         strategy = opts.replay[i];
+        name = strategy.name;
 
-        if (replayStrategies[strategy.name]) {
-            b.require('./src/client/replay/replay_after_' + strategy.name + '.js');
+        if (replayStrategies[name] && !replayStrategiesRequired[name]) {
+            b.require('./src/client/replay/replay_after_' + name + '.js');
+            replayStrategiesRequired[name] = true;
         }
     }
 
@@ -111,11 +125,6 @@ function getClientCodeStream(opts) {
     // remove the buffer code if we are not calling it
     if (!opts.buffer) {
         b.ignore('buffer_manager.js');
-    }
-
-    // remove the find client code if we are not calling it
-    if (!opts.focus && opts.replay !== 'rerender') {
-        b.ignore('find_client_node.js');
     }
 
     var outputStream = b.bundle()

@@ -9,22 +9,65 @@
 var nodeCache = {};
 
 /**
+ * Get a unique key for a node in the DOM
+ * @param node
+ * @param rootNode - Need to know how far up we go
+ */
+function getNodeKey(node, rootNode) {
+    var ancestors = [];
+    var temp = node;
+    while (temp && temp.nodeName !== rootNode) {
+        ancestors.push(temp);
+        temp = temp.parentNode;
+    }
+
+    // push the rootNode on the ancestors
+    if (temp) {
+        ancestors.push(temp);
+    }
+
+    // now go backwards starting from the root
+    var key = node.nodeName;
+    var len = ancestors.length;
+    var i, j;
+
+    for (i = (len - 1); i >= 0; i--) {
+        temp = ancestors[i];
+
+        key += '_d' + (len - i);
+
+        if (temp.childNodes && i > 0) {
+            for (j = 0; j < temp.childNodes.length; j++) {
+                if (temp.childNodes[j] === ancestors[i - 1]) {
+                    key += '_s' + (j + 1);
+                    break;
+                }
+            }
+        }
+    }
+
+    return key;
+}
+
+/**
  * Given a node from the server rendered view, find the equivalent
  * node in the client rendered view.
  *
  * @param document
  * @param serverNode
+ * @param serverRoot
+ * @param clientRoot
  */
-module.exports = function findClientNode(document, serverNode) {
+function findClientNode(document, serverNode, serverRoot, clientRoot) {
 
     // if nothing passed in, then no client node
     if (!serverNode) { return null; }
 
     // we use the string of the node to compare to the client node & as key in cache
-    var serverNodeString = serverNode.toString();
+    var serverNodeKey = getNodeKey(serverNode, serverRoot);
 
     // first check to see if we already mapped this node
-    var nodes = nodeCache[serverNodeString] || [];
+    var nodes = nodeCache[serverNodeKey] || [];
     for (var i = 0; i < nodes.length; i++) {
         if (nodes[i].serverNode === serverNode) {
             return nodes[i].clientNode;
@@ -46,11 +89,11 @@ module.exports = function findClientNode(document, serverNode) {
         clientNode = clientNodes[i];
 
         //TODO: this assumes a perfect match which isn't necessarily true
-        if (clientNode.toString() === serverNodeString) {
+        if (getNodeKey(clientNode, clientRoot) === serverNodeKey) {
 
             // add the client/server node pair to the cache
-            nodeCache[serverNodeString] = nodeCache[serverNodeString] || [];
-            nodeCache[serverNodeString].push({
+            nodeCache[serverNodeKey] = nodeCache[serverNodeKey] || [];
+            nodeCache[serverNodeKey].push({
                 clientNode: clientNode,
                 serverNode: serverNode
             });
@@ -61,4 +104,9 @@ module.exports = function findClientNode(document, serverNode) {
 
     // if we get here it means we couldn't find the client node
     return null;
+}
+
+module.exports = {
+    getNodeKey: getNodeKey,
+    findClientNode: findClientNode
 };

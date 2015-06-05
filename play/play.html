@@ -3,19 +3,39 @@
     <script>
         {{safe prebootClientCode}}
     </script>
+    <script src="dist/preboot.js"></script>
 </head>
 <body>
-    <form>
-        <input type="text" name="one" (keyup)="blah()"><br/>
-        <input type="text" name="two" on-keyup="blah()"><br/>
-        <input type="text" name="three"><br/>
-        <input type="text" name="four" class="preboot" preboot-events="keyup"><br/>
-        <button (click)="doit()">Click here</button>
-        <br/><br/>
-        <a href="" onclick="return log()">Log events console</a>
-        <br/><br/>
-        <a href="" onclick="preboot.cleanup(); return false;">Do cleanup</a>
-    </form>
 
+    <div class="server">
+
+        <input
+                style="height: 50px; width: 50%; font-size: 24px; padding: 20px; margin: 20px 25%"
+                type="text"
+                name="one">
+        <button
+                style="height: 50px; width: 50%; font-size: 24px text-align: center; margin: 20px 25%"
+                preboot-events="click"
+            >Click here</button>
+    </div>
+    <div style="display:none" class="client">
+        <input
+                style="height: 50px; width: 50%; font-size: 24px; padding: 20px; margin: 20px 25%"
+                type="text"
+                name="one">
+        <button
+                style="height: 50px; width: 50%; font-size: 24px text-align: center; margin: 20px 25%"
+                preboot-events="click"
+                >Click here</button>
+    </div>
+
+    <script>
+        setTimeout(function () {
+            console.log('dispatching bootstrap complete');
+            var evt = new Event('BootstrapComplete');
+            window.document.dispatchEvent(evt);
+            console.log('bootstrap complete dispatched');
+        }, 5000);
+    </script>
 </body>
 </html>

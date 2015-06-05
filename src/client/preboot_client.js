@@ -34,6 +34,7 @@
  *                          getNodeEvents - a custom strategy implementation (params document and config)
  *              focus - Boolean value if true, will keep track of focus on the page (true by default)
  *              buffer - Boolean value if true will switch buffers (see switch_buffer for details); default false
+ *              keypress - Boolean value if true will capture all keypress events in all input[type=text] and textarea elements
  *              serverRoot - selector to get the server root node
  *              clientRoot - selector to get the client root node
  *              completeEvent - Name of event that will be raised on the document
@@ -46,29 +47,41 @@
 
     opts = opts || {};                                      // set default value for opts
 
-    if (opts.buffer) {
-        bufferManager.hideClient(document, opts.clientRoot);
-    }
+    // get server and client roots used for comparing nodes for rerender strategy
+    var serverRoot = document.querySelectorAll(opts.serverRoot || opts.clientRoot || 'body');
+    var clientRoot = document.querySelectorAll(opts.clientRoot || opts.serverRoot || 'body');
 
-    eventManager.startListening(document, opts.listen);     // add all the event handlers
+    // as soon as the document loads, start running
+    window.onload = function() {
+        if (opts.buffer) {
+            bufferManager.hideClient(document, opts.clientRoot);
+        }
 
-    if (opts.focus) {
-        focusManager.startTracking(document);               // start tracking focus on the page
-    }
+        eventManager.startListening(document, opts.listen);     // add all the event handlers
+
+        if (opts.focus) {
+            focusManager.startTracking(document);               // start tracking focus on the page
+        }
+    };
 
     // listen for bootstrap complete event
     document.addEventListener(opts.completeEvent || 'BootstrapComplete', function () {
-        if (opts.focus) { focusManager.stopTracking(); }    // stop tracking focus so we retain the last focus
+        console.log('preboot got BootstrapComplete event');
 
-        eventManager.replayEvents(opts.replay);             // replay events
+        if (opts.focus) { focusManager.stopTracking(); }        // stop tracking focus so we retain the last focus
+
+        // replay events on client DOM
+        eventManager.replayEvents(document, opts.replay, serverRoot, clientRoot);
 
         // now that we have replayed the events, if a buffer exists switch it so client view displayed
         if (opts.buffer) {
             bufferManager.switchBuffer(document, opts.clientRoot, opts.serverRoot);
         }
 
-        if (opts.focus) { focusManager.setFocus(); }        // set focus if an option
+        if (opts.focus) {                                       // set focus if an option
+            focusManager.setFocus(document, serverRoot, clientRoot);
+        }
 
-        eventManager.cleanup();                             // do final event cleanup
+        eventManager.cleanup();                                 // do final event cleanup
     });
 })(window.document, window.prebootOptions);

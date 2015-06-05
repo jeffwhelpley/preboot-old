@@ -1,4 +1,4 @@
-var prebootOptions = {"listen":[{"name":"attributes"}],"replay":[{"name":"rerender"}]};
+var prebootOptions = {"focus":true,"buffer":false,"keypress":true,"serverRoot":"div.server","clientRoot":"div.client","completeEvent":"BootstrapComplete","listen":[{"name":"attributes"},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}}],"replay":[{"name":"rerender"}]};
 
 require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"./src/client/listen/listen_by_attributes.js":[function(require,module,exports){
 /**
@@ -44,6 +44,55 @@ function getNodeEvents(document, config) {
 module.exports = {
     getNodeEvents: getNodeEvents
 };
+},{}],"./src/client/listen/listen_by_list.js":[function(require,module,exports){
+/**
+ * Author: Jeff Whelpley
+ * Date: 6/2/15
+ *
+ * Listen by an explicit list of selectors mapped to a set of events
+ *
+ * @param document The browser document
+ * @param config May contain eventsBySelector which is a map of selectors to events
+ */
+function getNodeEvents(document, config) {
+    config = config || {};
+
+    var nodeEvents = [];
+    var eventsBySelector = config.eventsBySelector || {};
+    var selectors = Object.keys(eventsBySelector);
+    var selectorIdx, selector, elem, elems, i, j, events;
+
+    // loop through selectors
+    for (selectorIdx = 0; selectorIdx < selectors.length; selectorIdx++) {
+        selector = selectors[selectorIdx];
+        events = eventsBySelector[selector].split(',');
+        elems = document.querySelectorAll(selector);
+
+        // only do something if there are elements found
+        if (elems) {
+
+            // loop through elements
+            for (i = 0; i < elems.length; i++) {
+                elem = elems[i];
+
+                // loop through events
+                for (j = 0; j < events.length; j++) {
+                    nodeEvents.push({
+                        node:       elem,
+                        eventName:  events[i]
+                    });
+                }
+            }
+        }
+    }
+
+    return nodeEvents;
+}
+
+
+module.exports = {
+    getNodeEvents: getNodeEvents
+};
 },{}],"./src/client/replay/replay_after_rerender.js":[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
@@ -72,12 +121,16 @@ function replayEvents(document, events) {
         eventData = events[i];
         event = eventData.event;
         serverNode = eventData.node;
+
+        console.log('attempting to find ' + serverNode.tagName + ' for replay');
         clientNode = findClientNode(document, serverNode);
 
         if (clientNode) {
+            console.log('found node ' + clientNode.tagName + ' and dispatching event');
             clientNode.dispatchEvent(event);
         }
         else {
+            console.log('did not find node for ' + clientNode.tagName);
             remainingEvents.push(eventData);
         }
     }
@@ -102,6 +155,8 @@ module.exports = {
  * @param clientSelector
  */
 function hideClient(document, clientSelector) {
+    console.log('hiding client at ' + clientSelector);
+
     var clientRoot = document.querySelector(clientSelector);
     if (clientRoot) {
         clientRoot.style.display = 'none';
@@ -117,6 +172,7 @@ function hideClient(document, clientSelector) {
  * @param serverSelector
  */
 function switchBuffer(document, clientSelector, serverSelector) {
+    console.log('switching from ' + serverSelector + ' to ' + clientSelector);
     var clientRoot = document.querySelector(clientSelector);
     var serverRoot = document.querySelector(serverSelector);
 
@@ -154,14 +210,18 @@ var replayStrategies = { hydrate: true, rerender: true };
  *
  * @param node An element in the DOM
  * @param eventName The name of the event
+ * @param shouldPreventDefault
  */
-function addListener(node, eventName) {
+function addListener(node, eventName, shouldPreventDefault) {
 
     // this is what will be called when the event occurs
     function handler(event) {
 
         // we want to wait until client bootstraps so don't allow default action
-        event.preventDefault();
+        if (shouldPreventDefault) {
+            event.preventDefault();
+        }
+
         events.push({
             node:       node,
             event:      event,
@@ -186,19 +246,17 @@ function addListener(node, eventName) {
  */
 function startListening(document, strategies) {
 
-    // default listen strategy is 'attributes' which looks for a specific attribute in the DOM
-    strategies = strategies || [{ name: 'attributes' }];
-
     // if strategies param is not an array just throw an error
     // preboot_server will handle all the nice type conversions for user convenience
-    if (strategies.constructor !== Array) {
+    if (!strategies || strategies.constructor !== Array) {
         throw new Error('listen param must be array');
     }
 
     // most of the time there will just be one strategy, but more than one can be used
-    var i, j, strategy, getNodeEvents, nodeEvents;
+    var i, j, strategy, getNodeEvents, nodeEvents, nodeEvent, preventDefault;
     for (i = 0; i < strategies.length; i++) {
         strategy = strategies[i];
+        preventDefault = strategy.config && strategy.config.preventDefault;
 
         // a strategy must either have getNodeEvents (i.e. a custom strategy) or be in list of valid strategies
         if (!strategy.getNodeEvents && !listenStrategies[strategy.name]) {
@@ -209,9 +267,12 @@ function startListening(document, strategies) {
         getNodeEvents = strategy.getNodeEvents || require('./src/client/listen/listen_by_' + strategy.name + '.js').getNodeEvents;
 
         // get array of objs with 1 node and 1 event; add event listener for each
-        nodeEvents = getNodeEvents(document);
+        nodeEvents = getNodeEvents(document, strategy.config);
         for (j = 0; j < nodeEvents.length; j++) {
-            addListener(nodeEvents[j].node, nodeEvents[j].eventName);
+            nodeEvent = nodeEvents[j];
+
+            console.log('listening to ' + JSON.stringify(nodeEvent));
+            addListener(nodeEvent.node, nodeEvent.eventName, preventDefault);
         }
     }
 }
@@ -223,12 +284,9 @@ function startListening(document, strategies) {
  */
 function replayEvents(document, strategies) {
 
-    // default replay strategy is rerender
-    strategies = strategies || [{ name: 'rerender' }];
-
     // if strategies param is not an array just throw an error
     // preboot_server will handle all the nice type conversions for user convenience
-    if (strategies.constructor !== Array) {
+    if (!strategies || strategies.constructor !== Array) {
         throw new Error('replay param must be array');
     }
 
@@ -263,6 +321,8 @@ function replayEvents(document, strategies) {
  */
 function cleanup() {
     var listener, node;
+
+    console.log('cleaning up listeners');
 
     // first cleanup the event listeners
     for (var i = 0; i < eventListeners.length; i++) {
@@ -366,6 +426,10 @@ var trackingEnabled = false;
 function checkFocus(document) {
     if (trackingEnabled) {
 
+        if (document.activeElement && document.activeElement !== currentFocus) {
+            console.log('focus changed to ' + document.activeElement.tagName);
+        }
+
         // if no active element, keep a ref for the last known one
         currentFocus = document.activeElement || currentFocus;
 
@@ -381,6 +445,8 @@ function checkFocus(document) {
  * @param document
  */
 function startTracking(document) {
+    console.log('starting to track focus');
+
     trackingEnabled = true;
     checkFocus(document);
 }
@@ -389,14 +455,16 @@ function startTracking(document) {
  * This will stop currentFocus ref from changing
  */
 function stopTracking() {
+    console.log('stopping focus tracking');
     trackingEnabled = false;
 }
 
 /**
  * Set focus at the last known location
  */
-function setFocus() {
-    var clientNode = findClientNode(currentFocus);
+function setFocus(document) {
+    console.log('attempting to set focus to ' + (currentFocus && currentFocus.tagName));
+    var clientNode = findClientNode(document, currentFocus);
     if (clientNode) {
         clientNode.focus();
 
@@ -447,6 +515,7 @@ module.exports = {
  *                          getNodeEvents - a custom strategy implementation (params document and config)
  *              focus - Boolean value if true, will keep track of focus on the page (true by default)
  *              buffer - Boolean value if true will switch buffers (see switch_buffer for details); default false
+ *              keypress - Boolean value if true will capture all keypress events in all input[type=text] and textarea elements
  *              serverRoot - selector to get the server root node
  *              clientRoot - selector to get the client root node
  *              completeEvent - Name of event that will be raised on the document
@@ -459,30 +528,39 @@ module.exports = {
 
     opts = opts || {};                                      // set default value for opts
 
-    if (opts.buffer) {
-        bufferManager.hideClient(document, opts.clientRoot);
-    }
+    //TODO: only potentially do switch over when user tabs out
+    //TODO: spinner if user clicks on a button (how would user define this)
+    //TODO: timeout for events
 
-    eventManager.startListening(document, opts.listen);     // add all the event handlers
+    // as soon as the document loads, start running
+    window.onload = function() {
+        if (opts.buffer) {
+            bufferManager.hideClient(document, opts.clientRoot);
+        }
 
-    if (opts.focus) {
-        focusManager.startTracking(document);               // start tracking focus on the page
-    }
+        eventManager.startListening(document, opts.listen);     // add all the event handlers
+
+        if (opts.focus) {
+            focusManager.startTracking(document);               // start tracking focus on the page
+        }
+    };
 
     // listen for bootstrap complete event
     document.addEventListener(opts.completeEvent || 'BootstrapComplete', function () {
-        if (opts.focus) { focusManager.stopTracking(); }    // stop tracking focus so we retain the last focus
+        console.log('preboot got BootstrapComplete event');
 
-        eventManager.replayEvents(opts.replay);             // replay events
+        if (opts.focus) { focusManager.stopTracking(); }        // stop tracking focus so we retain the last focus
+
+        eventManager.replayEvents(document, opts.replay);       // replay events
 
         // now that we have replayed the events, if a buffer exists switch it so client view displayed
         if (opts.buffer) {
             bufferManager.switchBuffer(document, opts.clientRoot, opts.serverRoot);
         }
 
-        if (opts.focus) { focusManager.setFocus(); }        // set focus if an option
+        if (opts.focus) { focusManager.setFocus(document); }    // set focus if an option
 
-        eventManager.cleanup();                             // do final event cleanup
+        eventManager.cleanup();                                 // do final event cleanup
     });
 })(window.document, window.prebootOptions);
 

@@ -11,6 +11,8 @@
  * @param clientSelector
  */
 function hideClient(document, clientSelector) {
+    console.log('hiding client at ' + clientSelector);
+
     var clientRoot = document.querySelector(clientSelector);
     if (clientRoot) {
         clientRoot.style.display = 'none';
@@ -26,6 +28,7 @@ function hideClient(document, clientSelector) {
  * @param serverSelector
  */
 function switchBuffer(document, clientSelector, serverSelector) {
+    console.log('switching from ' + serverSelector + ' to ' + clientSelector);
     var clientRoot = document.querySelector(clientSelector);
     var serverRoot = document.querySelector(serverSelector);
 
