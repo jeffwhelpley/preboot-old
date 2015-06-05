@@ -53,7 +53,7 @@
     eventManager.startListening(document, opts.listen);     // add all the event handlers
 
     if (opts.focus) {
-        focusManager.startTracking();                       // start tracking focus on the page
+        focusManager.startTracking(document);               // start tracking focus on the page
     }
 
     // listen for bootstrap complete event

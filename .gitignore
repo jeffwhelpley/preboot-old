@@ -5,5 +5,4 @@ test/coverage
 config/env.js
 newrelic_agent.log
 coverage.html
-dist
 temp

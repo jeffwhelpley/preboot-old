@@ -15,6 +15,8 @@ var nodeEvents = [];
  * @param func Function called for each node in the tree
  */
 function walkDOM(node, func) {
+    if (!node) { return; }
+
     func(node);
     node = node.firstChild;
     while (node) {

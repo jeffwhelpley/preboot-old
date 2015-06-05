@@ -70,7 +70,7 @@ function startListening(document, strategies) {
         }
 
         // we either use custom strategy or one from the listen dir
-        getNodeEvents = strategy.getNodeEvents || require('./listen/listen_by_' + strategy.name).getNodeEvents;
+        getNodeEvents = strategy.getNodeEvents || require('./src/client/listen/listen_by_' + strategy.name + '.js').getNodeEvents;
 
         // get array of objs with 1 node and 1 event; add event listener for each
         nodeEvents = getNodeEvents(document);
@@ -107,7 +107,7 @@ function replayEvents(document, strategies) {
         }
 
         // we either use custom strategy or one from the listen dir
-        replayEvts = strategy.replayEvents || require('./replay/replay_after_' + strategy.name).replayEvents;
+        replayEvts = strategy.replayEvents || require('./src/client/replay/replay_after_' + strategy.name + '.js').replayEvents;
 
         // get array of objs with 1 node and 1 event; add event listener for each
         events = replayEvts(document, events, strategy.config);
