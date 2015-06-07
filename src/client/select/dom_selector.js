@@ -16,7 +16,7 @@ var nodeCache = {};
 function getNodeKey(node, rootNode) {
     var ancestors = [];
     var temp = node;
-    while (temp && temp.nodeName !== rootNode) {
+    while (temp && temp !== rootNode) {
         ancestors.push(temp);
         temp = temp.parentNode;
     }
@@ -34,7 +34,7 @@ function getNodeKey(node, rootNode) {
     for (i = (len - 1); i >= 0; i--) {
         temp = ancestors[i];
 
-        key += '_d' + (len - i);
+        //key += '_d' + (len - i);
 
         if (temp.childNodes && i > 0) {
             for (j = 0; j < temp.childNodes.length; j++) {
@@ -53,18 +53,16 @@ function getNodeKey(node, rootNode) {
  * Given a node from the server rendered view, find the equivalent
  * node in the client rendered view.
  *
- * @param document
  * @param serverNode
- * @param serverRoot
- * @param clientRoot
+ * @param opts
  */
-function findClientNode(document, serverNode, serverRoot, clientRoot) {
+function findClientNode(serverNode, opts) {
 
     // if nothing passed in, then no client node
     if (!serverNode) { return null; }
 
     // we use the string of the node to compare to the client node & as key in cache
-    var serverNodeKey = getNodeKey(serverNode, serverRoot);
+    var serverNodeKey = getNodeKey(serverNode, opts.serverRoot);
 
     // first check to see if we already mapped this node
     var nodes = nodeCache[serverNodeKey] || [];
@@ -83,13 +81,13 @@ function findClientNode(document, serverNode, serverRoot, clientRoot) {
         selector += serverNode.className.replace(/ /g, '.');
     }
 
-    var clientNodes = document.querySelectorAll(selector);
+    var clientNodes = opts.document.querySelectorAll(selector);
     var clientNode;
     for (i = 0; i < clientNodes.length; i++) {
         clientNode = clientNodes[i];
 
         //TODO: this assumes a perfect match which isn't necessarily true
-        if (getNodeKey(clientNode, clientRoot) === serverNodeKey) {
+        if (getNodeKey(clientNode, opts.clientRoot) === serverNodeKey) {
 
             // add the client/server node pair to the cache
             nodeCache[serverNodeKey] = nodeCache[serverNodeKey] || [];
@@ -107,6 +105,7 @@ function findClientNode(document, serverNode, serverRoot, clientRoot) {
 }
 
 module.exports = {
+    nodeCache: nodeCache,
     getNodeKey: getNodeKey,
     findClientNode: findClientNode
 };

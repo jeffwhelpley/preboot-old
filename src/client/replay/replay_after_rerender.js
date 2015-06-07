@@ -12,23 +12,24 @@ var domSelector = require('../select/dom_selector');
  * Loop through all events and replay each by trying to find a node
  * that most closely resembles the original.
  *
- * @param document
  * @param events
- * @param config
+ * @param strategy
+ * @param opts
  * @returns {Array}
  */
-function replayEvents(document, events, config) {
+function replayEvents(events, strategy, opts) {
     var i, eventData, serverNode, clientNode, event;
     var remainingEvents = [];
+    events = events || [];
 
     // loop through the events, find the appropriate client node and dispatch the event
-    for (i = 0; i < events; i++) {
+    for (i = 0; i < events.length; i++) {
         eventData = events[i];
         event = eventData.event;
         serverNode = eventData.node;
 
         console.log('attempting to find ' + serverNode.tagName + ' for replay');
-        clientNode = domSelector.findClientNode(document, serverNode, config.serverRoot, config.clientRoot);
+        clientNode = domSelector.findClientNode(serverNode, opts);
 
         if (clientNode) {
             console.log('found node ' + clientNode.tagName + ' and dispatching event');

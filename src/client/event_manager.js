@@ -6,48 +6,88 @@
  */
 var eventListeners = [];
 var events = [];
+var overlay = null;
 
 /* jshint camelcase: false */
 var listenStrategies = { attributes: true, event_bindings: true, list: true };
 var replayStrategies = { hydrate: true, rerender: true };
 
 /**
+ * Hide the overlay by setting to display none
+ */
+function hideOverlay() {
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+/**
+ * Display overlay by sticking div at end of body
+ * @param document
+ */
+function displayOverlay(document) {
+    overlay = document.createElement('div');
+    overlay.className = 'preboot-overlay';
+    overlay.style.zIndex = '9999999';
+    overlay.style.position = 'absolute';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.background = '#263741';
+    overlay.style.opacity = '.27';
+    document.body.appendChild(overlay);
+
+    // hide overlay after 4 seconds regardless of whether bootstrap complete
+    setTimeout(hideOverlay, 4000);
+}
+
+/**
  * For a given node, add an event listener based on the given attribute. The attribute
  * must match the Angular pattern for event handlers (i.e. either (event)='blah()' or
  * on-event='blah'
  *
- * @param node An element in the DOM
- * @param eventName The name of the event
- * @param shouldPreventDefault
+ * @param nodeEvent
+ * @param strategy
+ * @param opts
  */
-function addListener(node, eventName, shouldPreventDefault) {
+function addListener(nodeEvent, strategy, opts) {
+    var node = nodeEvent.node;
+    var eventName = nodeEvent.eventName;
+    var document = opts.document;
 
     // this is what will be called when the event occurs
     function handler(event) {
 
         // we want to wait until client bootstraps so don't allow default action
-        if (shouldPreventDefault) {
+        if (strategy.preventDefault) {
             event.preventDefault();
         }
 
+        // if we want to raise an event that others can listen for
+        if (strategy.dispatchEvent) {
+            document.dispatchEvent(new Event(strategy.dispatchEvent));
+        }
 
+        // if callback provided for a custom action when an event occurs
+        if (strategy.action) {
+            strategy.action(node, event);
+        }
 
+        // if we should show overlay when user hits button so there is no further action
+        if (strategy.overlay) {
+            displayOverlay(document);
+        }
 
-        //TODO: only potentially do switch over when user tabs out
-        //TODO: spinner if user clicks on a button (how would user define this)
-        // basically, for event, provide alternative action from limited list:
-        // spinner, send raise a diff event
-
-
-
-
-
-        events.push({
-            node:       node,
-            event:      event,
-            name:       eventName,
-            time:       (new Date()).getTime()
-        });
+        // we will record events for later replay unless explicitly marked as doNotReplay
+        if (!strategy.doNotReplay) {
+            events.push({
+                node:       node,
+                event:      event,
+                name:       eventName,
+                time:       (new Date()).getTime()
+            });
+        }
     }
 
     // add the actual event listener and keep a ref so we can remove the listener during cleanup
@@ -60,76 +100,52 @@ function addListener(node, eventName, shouldPreventDefault) {
 }
 
 /**
- * Add event handlers
- * @param document
- * @param strategies
+ * Loop through node events and add listeners
+ * @param nodeEvents
+ * @param strategy
+ * @param opts
  */
-function startListening(document, strategies) {
-
-    // if strategies param is not an array just throw an error
-    // preboot_server will handle all the nice type conversions for user convenience
-    if (!strategies || strategies.constructor !== Array) {
-        throw new Error('listen param must be array');
-    }
-
-    // most of the time there will just be one strategy, but more than one can be used
-    var i, j, strategy, getNodeEvents, nodeEvents, nodeEvent, preventDefault;
-    for (i = 0; i < strategies.length; i++) {
-        strategy = strategies[i];
-        preventDefault = strategy.config && strategy.config.preventDefault;
-
-        // a strategy must either have getNodeEvents (i.e. a custom strategy) or be in list of valid strategies
-        if (!strategy.getNodeEvents && !listenStrategies[strategy.name]) {
-            throw new Error('Invalid listen strategy');
-        }
-
-        // we either use custom strategy or one from the listen dir
-        getNodeEvents = strategy.getNodeEvents || require('./src/client/listen/listen_by_' + strategy.name + '.js').getNodeEvents;
-
-        // get array of objs with 1 node and 1 event; add event listener for each
-        nodeEvents = getNodeEvents(document, strategy.config);
-        for (j = 0; j < nodeEvents.length; j++) {
-            nodeEvent = nodeEvents[j];
-
-            console.log('listening to ' + JSON.stringify(nodeEvent));
-            addListener(nodeEvent.node, nodeEvent.eventName, preventDefault);
-        }
+function addListeners(nodeEvents, strategy, opts) {
+    for (var i = 0; i < nodeEvents.length; i++) {
+        var nodeEvent = nodeEvents[i];
+        addListener(nodeEvent, strategy, opts);
     }
 }
 
 /**
- * Replay events
- * @param document
- * @param strategies
- * @param serverRoot
- * @param clientRoot
+ * Add event handlers
+ * @param opts
  */
-function replayEvents(document, strategies, serverRoot, clientRoot) {
-
-    // if strategies param is not an array just throw an error
-    // preboot_server will handle all the nice type conversions for user convenience
-    if (!strategies || strategies.constructor !== Array) {
-        throw new Error('replay param must be array');
-    }
-
-    // most of the time there will just be one strategy, but more than one can be used
-    var i, strategy, replayEvts, config;
-    for (i = 0; i < strategies.length; i++) {
-        strategy = strategies[i];
-        config = strategy.config || {};
-        config.serverRoot = serverRoot;
-        config.clientRoot = clientRoot;
-
-        // a strategy must either have replayEvents (i.e. a custom strategy) or be in list of valid strategies
-        if (!strategy.replayEvents && !replayStrategies[strategy.name]) {
-            throw new Error('Invalid replay strategy');
-        }
+function startListening(opts) {
+    for (var i = 0; i < opts.listen.length; i++) {
+        var strategy = opts.listen[i];
 
         // we either use custom strategy or one from the listen dir
-        replayEvts = strategy.replayEvents || require('./src/client/replay/replay_after_' + strategy.name + '.js').replayEvents;
+        var getNodeEvents = strategy.getNodeEvents ||
+            require('./listen/listen_by_' + strategy.name + '.js').getNodeEvents;
 
         // get array of objs with 1 node and 1 event; add event listener for each
-        events = replayEvts(document, events, strategy.config);
+        var nodeEvents = getNodeEvents(strategy, opts);
+        addListeners(nodeEvents, strategy, opts);
+    }
+}
+
+/**
+ * Loop through replay strategies and call replayEvents functions
+ * @param opts
+ */
+function replayEvents(opts) {
+
+    // loop through replay strategies
+    for (var i = 0; i < opts.replay.length; i++) {
+        var strategy = opts.replay[i];
+
+        // we either use custom strategy or one from the listen dir
+        var replayEvents = strategy.replayEvents ||
+            require('./replay/replay_after_' + strategy.name + '.js').replayEvents;
+
+        // get array of objs with 1 node and 1 event; add event listener for each
+        events = replayEvents(events, strategy, opts);
     }
 
     //TODO: figure out better solution for remaining events
@@ -155,6 +171,9 @@ function cleanup() {
         node = listener.node;
         node.removeEventListener(listener.name, listener.handler);
     }
+
+    // hide overlay if it exists
+    hideOverlay();
 
     // now remove the events
     events = [];

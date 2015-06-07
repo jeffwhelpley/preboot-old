@@ -40,48 +40,106 @@
  *              completeEvent - Name of event that will be raised on the document
  *                       when the client application bootstrap has completed
  */
-(function (document, opts) {
-    var eventManager = require('./event_manager');
-    var focusManager = require('./focus/focus_manager');
-    var bufferManager = require('./buffer/buffer_manager');
+var eventManager = require('./event_manager');
+var focusManager = require('./focus/focus_manager');
+var bufferManager = require('./buffer/buffer_manager');
+var canComplete = true;  // set to false if preboot paused through an event
+var completeCalled = false; // set to true once the completion event has been raised
 
-    opts = opts || {};                                      // set default value for opts
+/**
+ * Most of the options should have been normalized by the clientCodeGenerator, so if
+ * no options here, throw error. Really all this is for is to add window/document
+ * based objects to the opts.
+ *
+ * @param opts
+ */
+function normalizeOptions(opts) {
+    var document = opts.document = window.document;
+    opts.serverRoot = document.querySelectorAll(opts.serverRoot || opts.clientRoot || 'body');
+    opts.clientRoot = opts.clientRoot ? document.querySelectorAll(opts.clientRoot) : opts.serverRoot;
+}
 
-    // get server and client roots used for comparing nodes for rerender strategy
-    var serverRoot = document.querySelectorAll(opts.serverRoot || opts.clientRoot || 'body');
-    var clientRoot = document.querySelectorAll(opts.clientRoot || opts.serverRoot || 'body');
-
-    // as soon as the document loads, start running
-    window.onload = function() {
+/**
+ * Get function to run once window has loaded
+ * @param opts
+ * @returns {Function}
+ */
+function getOnLoadHandler(opts) {
+    return function onLoad() {
         if (opts.buffer) {
-            bufferManager.hideClient(document, opts.clientRoot);
+            bufferManager.hideClient(opts.clientRoot);          // make sure client root is hidden
         }
 
-        eventManager.startListening(document, opts.listen);     // add all the event handlers
+        eventManager.startListening(opts);                      // add all the event handlers
 
         if (opts.focus) {
-            focusManager.startTracking(document);               // start tracking focus on the page
+            focusManager.startTracking(opts.document);          // start tracking focus on the page
         }
     };
+}
 
-    // listen for bootstrap complete event
-    document.addEventListener(opts.completeEvent || 'BootstrapComplete', function () {
+/**
+ * Get a function to run once bootstrap has completed
+ * @param opts
+ * @returns {Function}
+ */
+function getBootstrapCompleteHandler(opts) {
+    return function onComplete() {
         console.log('preboot got BootstrapComplete event');
 
+        // track that complete has been called and don't do anything if we can't complete
+        completeCalled = true;
+        if (!canComplete) { return; }
+
+        // can complete, so run it
         if (opts.focus) { focusManager.stopTracking(); }        // stop tracking focus so we retain the last focus
+        eventManager.replayEvents(opts);                        // replay events on client DOM
+        if (opts.buffer) { bufferManager.switchBuffer(opts); }  // switch from server to client buffer
+        if (opts.focus) { focusManager.setFocus(opts); }        // set focus on client buffer
+        eventManager.cleanup();                                 // cleanup event listeners
+    };
+}
 
-        // replay events on client DOM
-        eventManager.replayEvents(document, opts.replay, serverRoot, clientRoot);
+/**
+ * Pause the completion process
+ */
+function pauseCompletion() {
+    canComplete = false;
+}
 
-        // now that we have replayed the events, if a buffer exists switch it so client view displayed
-        if (opts.buffer) {
-            bufferManager.switchBuffer(document, opts.clientRoot, opts.serverRoot);
+/**
+ * Resume the completion process; if complete already called,
+ * call it again right away.
+ *
+ * @param opts
+ * @returns {Function}
+ */
+function getResumeCompleteHandler(opts) {
+    return function onPause() {
+        canComplete = true;
+
+        if (completeCalled) {
+            getBootstrapCompleteHandler(opts)();
         }
+    };
+}
 
-        if (opts.focus) {                                       // set focus if an option
-            focusManager.setFocus(document, serverRoot, clientRoot);
-        }
+/**
+ * Start preboot
+ * @param opts
+ */
+function start(opts) {
+    normalizeOptions(opts);
+    window.onload = getOnLoadHandler(opts);
+    window.document.addEventListener(opts.pauseEvent, pauseCompletion);
+    window.document.addEventListener(opts.resumeEvent, getResumeCompleteHandler(opts));
+    window.document.addEventListener(opts.completeEvent, getBootstrapCompleteHandler(opts));
+}
 
-        eventManager.cleanup();                                 // do final event cleanup
-    });
-})(window.document, window.prebootOptions);
+// only expose start
+module.exports = {
+    eventManager: eventManager,
+    focusManager: focusManager,
+    bufferManager: bufferManager,
+    start: start
+};

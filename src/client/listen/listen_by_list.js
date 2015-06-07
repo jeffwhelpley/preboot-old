@@ -4,14 +4,12 @@
  *
  * Listen by an explicit list of selectors mapped to a set of events
  *
- * @param document The browser document
- * @param config May contain eventsBySelector which is a map of selectors to events
+ * @param strategy
+ * @param opts
  */
-function getNodeEvents(document, config) {
-    config = config || {};
-
+function getNodeEvents(strategy, opts) {
     var nodeEvents = [];
-    var eventsBySelector = config.eventsBySelector || {};
+    var eventsBySelector = strategy.eventsBySelector || {};
     var selectors = Object.keys(eventsBySelector);
     var selectorIdx, selector, elem, elems, i, j, events;
 
@@ -19,7 +17,7 @@ function getNodeEvents(document, config) {
     for (selectorIdx = 0; selectorIdx < selectors.length; selectorIdx++) {
         selector = selectors[selectorIdx];
         events = eventsBySelector[selector].split(',');
-        elems = document.querySelectorAll(selector);
+        elems = opts.document.querySelectorAll(selector);
 
         // only do something if there are elements found
         if (elems) {
@@ -32,7 +30,7 @@ function getNodeEvents(document, config) {
                 for (j = 0; j < events.length; j++) {
                     nodeEvents.push({
                         node:       elem,
-                        eventName:  events[i]
+                        eventName:  events[j]
                     });
                 }
             }

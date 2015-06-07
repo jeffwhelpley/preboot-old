@@ -7,37 +7,32 @@
 
 /**
  * The client is hidden while the client is bootstrapping
- * @param document
- * @param clientSelector
+ * @param clientRoot
  */
-function hideClient(document, clientSelector) {
-    console.log('hiding client at ' + clientSelector);
-
-    var clientRoot = document.querySelector(clientSelector);
-    if (clientRoot) {
-        clientRoot.style.display = 'none';
-    }
+function hideClient(clientRoot) {
+    console.log('hiding client');
+    clientRoot.style.display = 'none';
 }
 
 /**
  * We want to simultaneously remove the server node from the DOM
  * and display the client node
  *
- * @param document
- * @param clientSelector
- * @param serverSelector
+ * @param opts
  */
-function switchBuffer(document, clientSelector, serverSelector) {
-    console.log('switching from ' + serverSelector + ' to ' + clientSelector);
-    var clientRoot = document.querySelector(clientSelector);
-    var serverRoot = document.querySelector(serverSelector);
+function switchBuffer(opts) {
+    console.log('switching from server buffer to client buffer');
 
-    if (!clientRoot || !serverRoot) {
-        throw new Error('buffer option set, but clientRoot and/or serverRoot invalid');
+    var clientRoot = opts.clientRoot;
+    var serverRoot = opts.serverRoot;
+
+    //TODO: this does not work at all on IE; need alternative
+    // remove the server root if not same as client and not the body
+    if (serverRoot && serverRoot !== clientRoot && serverRoot.nodeName !== 'BODY') {
+        serverRoot.remove();
     }
 
-    // this will effectively do the switch
-    serverRoot.remove();  //TODO: this does not work at all on IE; need alternative
+    // display the client
     clientRoot.style.display = 'block';
 }
 

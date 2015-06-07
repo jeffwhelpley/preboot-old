@@ -5,16 +5,12 @@
  * This listen strategy will look for a specific attribute which contains all the elements
  * that a given element is listening to.
  *
- * @param document The browser document
- * @param config May contain the following values:
- *                  attributeName - Name of the events attribute (default preboot-events)
+ * @param strategy
+ * @param opts
  */
-function getNodeEvents(document, config) {
-    config = config || {};
-
-    // get all elements that have the preboot events attribute
-    var attributeName = config.attributeName || 'preboot-events';
-    var elems = document.querySelectorAll('[' + attributeName + ']');
+function getNodeEvents(strategy, opts) {
+    var attributeName = strategy.attributeName || 'preboot-events';
+    var elems = opts.document.querySelectorAll('[' + attributeName + ']');
 
     // if no elements found, return empty array since no node events
     if (!elems) { return []; }
@@ -29,14 +25,13 @@ function getNodeEvents(document, config) {
         for (j = 0; j < events.length; j++) {
             nodeEvents.push({
                 node:       elem,
-                eventName:  events[i]
+                eventName:  events[j]
             });
         }
     }
 
     return nodeEvents;
 }
-
 
 module.exports = {
     getNodeEvents: getNodeEvents

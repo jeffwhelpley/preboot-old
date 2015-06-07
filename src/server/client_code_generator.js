@@ -18,12 +18,15 @@ var browserify  = require('browserify');
 var listenStrategies = { attributes: true, event_bindings: true, list: true };
 var replayStrategies = { hydrate: true, rerender: true };
 
+// map of input opts to client code
+var clientCodeCache = {};
+
 /**
  * Stringify an object and include functions
  * @param obj
  */
 function stringifyWithFunctions(obj) {
-    var optsStr = JSON.stringify(obj, function (key, value) {
+    return JSON.stringify(obj, function (key, value) {
         if (!!(value && value.constructor && value.call && value.apply)) {  // if function
             return value.toString();
         }
@@ -31,8 +34,6 @@ function stringifyWithFunctions(obj) {
             return value;
         }
     });
-
-    return 'var prebootOptions = ' + optsStr + ';\n\n';
 }
 
 /**
@@ -44,10 +45,13 @@ function stringifyWithFunctions(obj) {
  */
 function normalizeOptions(opts) {
     opts = opts || {};
+    opts.pauseEvent = opts.pauseEvent || 'PrebootPause';
+    opts.resumeEvent = opts.resumeEvent || 'PrebootResume';
+    opts.completeEvent = opts.completeEvent || 'BootstrapComplete';
 
     // set default strategies
-    opts.listen = opts.listen || [{ name: 'attributes' }];
-    opts.replay = opts.replay || [{ name: 'rerender' }];
+    opts.listen = opts.listen || [];
+    opts.replay = opts.replay || [];
 
     // if strategies are strings turn them into arrays
     if (_.isString(opts.listen)) {
@@ -67,10 +71,43 @@ function normalizeOptions(opts) {
 
     // if keypress, add strategy for capturing all keypress events
     if (opts.keypress) {
-        opts.listen.push({ name: 'list', config: { eventsBySelector: {
-            'input[type="text"]':   ['keypress'],
-            'textarea':             ['keypress']
-        }}})
+        opts.listen.push({
+            name: 'list',
+            eventsBySelector: {
+                'input[type="text"]':   ['keypress', 'keyup', 'keydown'],
+                'textarea':             ['keypress', 'keyup', 'keydown']
+            }
+        })
+    }
+
+    // if we want to wait pause bootstrap completion while the user is typing
+    if (opts.pauseOnTyping) {
+        opts.listen.push({
+            name: 'list',
+            eventsBySelector: {
+                'input[type="text"]':   ['focus'],
+                'textarea':             ['focus']
+            },
+            doNotReplay: true,
+            dispatchEvent: opts.pauseEvent
+        });
+        opts.listen.push({
+            name: 'list',
+            eventsBySelector: {
+                'input[type="text"]':   ['blur'],
+                'textarea':             ['blur']
+            },
+            doNotReplay: true,
+            dispatchEvent: opts.resumeEvent
+        });
+    }
+
+    // set default values if none exist
+    if (!opts.listen.length) {
+        opts.listen.push({ name: 'attributes' });
+    }
+    if (!opts.replay.length) {
+        opts.replay.push({ name: 'rerender' });
     }
 
     return opts;
@@ -91,7 +128,8 @@ function getClientCodeStream(opts) {
 
     // client code entry file
     var b = browserify({
-        entries: ['src/client/preboot_client.js']
+        entries: ['src/client/preboot_client.js'],
+        standalone: 'preboot'
     });
 
     // add the listen strategy files to the bundle
@@ -101,7 +139,8 @@ function getClientCodeStream(opts) {
         name = strategy.name;
 
         if (listenStrategies[name] && !listenStrategiesRequired[name]) {
-            b.require('./src/client/listen/listen_by_' + name + '.js');
+            b.require('./src/client/listen/listen_by_' + name + '.js',
+                { expose: './listen/listen_by_' + name + '.js' });
             listenStrategiesRequired[name] = true;
         }
     }
@@ -112,7 +151,8 @@ function getClientCodeStream(opts) {
         name = strategy.name;
 
         if (replayStrategies[name] && !replayStrategiesRequired[name]) {
-            b.require('./src/client/replay/replay_after_' + name + '.js');
+            b.require('./src/client/replay/replay_after_' + name + '.js',
+                { expose: './replay/replay_after_' + name + '.js' });
             replayStrategiesRequired[name] = true;
         }
     }
@@ -130,7 +170,7 @@ function getClientCodeStream(opts) {
     var outputStream = b.bundle()
         .pipe(source('src/client/preboot_client.js'))
         .pipe(buffer())
-        .pipe(insert.prepend(stringifyWithFunctions(opts)));
+        .pipe(insert.append('\n\npreboot.init(' + stringifyWithFunctions(opts) + ');\n\n'));
 
     // uglify if the option is passed in
     return opts.uglify ? outputStream.pipe(uglify()) : outputStream;
@@ -146,6 +186,13 @@ function getClientCode(opts, done) {
     var deferred = Q.defer();
     var clientCode = '';
 
+    // check cache first
+    var cacheKey = JSON.stringify(opts);
+    if (clientCodeCache[cacheKey]) {
+        return new Q(clientCodeCache[cacheKey]);
+    }
+
+    // get the client code
     getClientCodeStream(opts)
         .pipe(eventStream.map(function (file, cb) {
             clientCode += file.contents;
@@ -163,6 +210,7 @@ function getClientCode(opts, done) {
                 done(null, clientCode);
             }
 
+            clientCodeCache[cacheKey] = clientCode;
             deferred.resolve(clientCode);
         });
 

@@ -57,16 +57,18 @@ function addNodeEvents(node) {
 
 /**
  * Walk the DOM adding listeners for each node that has the pattern
- * @param document
+ * @param strategy
+ * @param opts
  */
-function getNodeEvents(document) {
-    nodeEvents = [];
-    walkDOM(document.body, addNodeEvents);
+function getNodeEvents(strategy, opts) {
+    nodeEvents.splice(0, nodeEvents.length);
+    walkDOM(opts.document.body, addNodeEvents);
     return nodeEvents;
 }
 
 // only getNodeEvents called by event_manager, but other fns exposed for testing purposes
 module.exports = {
+    nodeEvents: nodeEvents,
     walkDOM: walkDOM,
     addNodeEvents: addNodeEvents,
     getNodeEvents: getNodeEvents

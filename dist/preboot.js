@@ -1,64 +1,18 @@
-var prebootOptions = {"focus":true,"buffer":false,"keypress":true,"serverRoot":"div.server","clientRoot":"div.client","completeEvent":"BootstrapComplete","listen":[{"name":"attributes"},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}},{"name":"list","config":{"eventsBySelector":{"input[type=\"text\"]":"keypress","textarea":"keypress"}}}],"replay":[{"name":"rerender"}]};
-
-require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"./src/client/listen/listen_by_attributes.js":[function(require,module,exports){
-/**
- * Author: Jeff Whelpley
- * Date: 6/2/15
- *
- * This listen strategy will look for a specific attribute which contains all the elements
- * that a given element is listening to.
- *
- * @param document The browser document
- * @param config May contain the following values:
- *                  attributeName - Name of the events attribute (default preboot-events)
- */
-function getNodeEvents(document, config) {
-    config = config || {};
-
-    // get all elements that have the preboot events attribute
-    var attributeName = config.attributeName || 'preboot-events';
-    var elems = document.querySelectorAll('[' + attributeName + ']');
-
-    // if no elements found, return empty array since no node events
-    if (!elems) { return []; }
-
-    var nodeEvents = [];
-    var i, j, elem, events;
-
-    for (i = 0; i < elems.length; i++) {
-        elem = elems[i];
-        events = elem.getAttribute(attributeName).split(',');
-
-        for (j = 0; j < events.length; j++) {
-            nodeEvents.push({
-                node:       elem,
-                eventName:  events[i]
-            });
-        }
-    }
-
-    return nodeEvents;
-}
-
-
-module.exports = {
-    getNodeEvents: getNodeEvents
-};
-},{}],"./src/client/listen/listen_by_list.js":[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.preboot = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"./listen/listen_by_list.js":[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
  * Date: 6/2/15
  *
  * Listen by an explicit list of selectors mapped to a set of events
  *
- * @param document The browser document
- * @param config May contain eventsBySelector which is a map of selectors to events
+ * @param strategy
+ * @param opts
  */
-function getNodeEvents(document, config) {
+function getNodeEvents(strategy, opts) {
     config = config || {};
 
     var nodeEvents = [];
-    var eventsBySelector = config.eventsBySelector || {};
+    var eventsBySelector = strategy.eventsBySelector || {};
     var selectors = Object.keys(eventsBySelector);
     var selectorIdx, selector, elem, elems, i, j, events;
 
@@ -66,7 +20,7 @@ function getNodeEvents(document, config) {
     for (selectorIdx = 0; selectorIdx < selectors.length; selectorIdx++) {
         selector = selectors[selectorIdx];
         events = eventsBySelector[selector].split(',');
-        elems = document.querySelectorAll(selector);
+        elems = opts.document.querySelectorAll(selector);
 
         // only do something if there are elements found
         if (elems) {
@@ -93,7 +47,7 @@ function getNodeEvents(document, config) {
 module.exports = {
     getNodeEvents: getNodeEvents
 };
-},{}],"./src/client/replay/replay_after_rerender.js":[function(require,module,exports){
+},{}],"./replay/replay_after_rerender.js":[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
  * Date: 6/2/15
@@ -102,28 +56,30 @@ module.exports = {
  * the page so reboot will need to find the element in the new client
  * rendered DOM that matches the element it has in memory.
  */
-var findClientNode = require('../find/find_client_node');
+var domSelector = require('../select/dom_selector');
 
 /**
  * Loop through all events and replay each by trying to find a node
  * that most closely resembles the original.
  *
- * @param document
  * @param events
+ * @param strategy
+ * @param opts
  * @returns {Array}
  */
-function replayEvents(document, events) {
+function replayEvents(events, strategy, opts) {
     var i, eventData, serverNode, clientNode, event;
     var remainingEvents = [];
+    events = events || [];
 
     // loop through the events, find the appropriate client node and dispatch the event
-    for (i = 0; i < events; i++) {
+    for (i = 0; i < events.length; i++) {
         eventData = events[i];
         event = eventData.event;
         serverNode = eventData.node;
 
         console.log('attempting to find ' + serverNode.tagName + ' for replay');
-        clientNode = findClientNode(document, serverNode);
+        clientNode = domSelector.findClientNode(serverNode, opts);
 
         if (clientNode) {
             console.log('found node ' + clientNode.tagName + ' and dispatching event');
@@ -141,7 +97,7 @@ function replayEvents(document, events) {
 module.exports = {
     replayEvents: replayEvents
 };
-},{"../find/find_client_node":3}],1:[function(require,module,exports){
+},{"../select/dom_selector":4}],1:[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
  * Date: 6/2/15
@@ -151,38 +107,30 @@ module.exports = {
 
 /**
  * The client is hidden while the client is bootstrapping
- * @param document
- * @param clientSelector
+ * @param clientRoot
  */
-function hideClient(document, clientSelector) {
-    console.log('hiding client at ' + clientSelector);
-
-    var clientRoot = document.querySelector(clientSelector);
-    if (clientRoot) {
-        clientRoot.style.display = 'none';
-    }
+function hideClient(clientRoot) {
+    console.log('hiding client');
+    clientRoot.style.display = 'none';
 }
 
 /**
  * We want to simultaneously remove the server node from the DOM
  * and display the client node
  *
- * @param document
- * @param clientSelector
- * @param serverSelector
+ * @param opts
  */
-function switchBuffer(document, clientSelector, serverSelector) {
-    console.log('switching from ' + serverSelector + ' to ' + clientSelector);
-    var clientRoot = document.querySelector(clientSelector);
-    var serverRoot = document.querySelector(serverSelector);
+function switchBuffer(opts) {
+    console.log('switching from server buffer to client buffer');
 
-    if (!clientRoot || !serverRoot) {
-        throw new Error('buffer option set, but clientRoot and/or serverRoot invalid');
+    //TODO: this does not work at all on IE; need alternative
+    // remove the server root if not same as client and not the body
+    if (opts.serverRoot !== opts.clientRoot && opts.serverRoot.nodeName !== 'BODY') {
+        opts.serverRoot.remove();
     }
 
-    // this will effectively do the switch
-    serverRoot.remove();  //TODO: this does not work at all on IE; need alternative
-    clientRoot.style.display = 'block';
+    // display the client
+    opts.clientRoot.style.display = 'block';
 }
 
 module.exports = {
@@ -208,26 +156,42 @@ var replayStrategies = { hydrate: true, rerender: true };
  * must match the Angular pattern for event handlers (i.e. either (event)='blah()' or
  * on-event='blah'
  *
- * @param node An element in the DOM
- * @param eventName The name of the event
- * @param shouldPreventDefault
+ * @param nodeEvent
+ * @param strategy
+ * @param opts
  */
-function addListener(node, eventName, shouldPreventDefault) {
+function addListener(nodeEvent, strategy, opts) {
+    var node = nodeEvent.node;
+    var eventName = nodeEvent.eventName;
+    var document = opts.document;
 
     // this is what will be called when the event occurs
     function handler(event) {
 
         // we want to wait until client bootstraps so don't allow default action
-        if (shouldPreventDefault) {
+        if (strategy.preventDefault) {
             event.preventDefault();
         }
 
-        events.push({
-            node:       node,
-            event:      event,
-            name:       eventName,
-            time:       (new Date()).getTime()
-        });
+        // if we want to raise an event that others can listen for
+        if (strategy.dispatchEvent) {
+            document.dispatchEvent(new Event(strategy.dispatchEvent));
+        }
+
+        // if callback provided for a custom action when an event occurs
+        if (strategy.action) {
+            strategy.action(node, event);
+        }
+
+        // we will record events for later replay unless explicitly marked as doNotReplay
+        if (!strategy.doNotReplay) {
+            events.push({
+                node:       node,
+                event:      event,
+                name:       eventName,
+                time:       (new Date()).getTime()
+            });
+        }
     }
 
     // add the actual event listener and keep a ref so we can remove the listener during cleanup
@@ -240,71 +204,52 @@ function addListener(node, eventName, shouldPreventDefault) {
 }
 
 /**
- * Add event handlers
- * @param document
- * @param strategies
+ * Loop through node events and add listeners
+ * @param nodeEvents
+ * @param strategy
+ * @param opts
  */
-function startListening(document, strategies) {
-
-    // if strategies param is not an array just throw an error
-    // preboot_server will handle all the nice type conversions for user convenience
-    if (!strategies || strategies.constructor !== Array) {
-        throw new Error('listen param must be array');
-    }
-
-    // most of the time there will just be one strategy, but more than one can be used
-    var i, j, strategy, getNodeEvents, nodeEvents, nodeEvent, preventDefault;
-    for (i = 0; i < strategies.length; i++) {
-        strategy = strategies[i];
-        preventDefault = strategy.config && strategy.config.preventDefault;
-
-        // a strategy must either have getNodeEvents (i.e. a custom strategy) or be in list of valid strategies
-        if (!strategy.getNodeEvents && !listenStrategies[strategy.name]) {
-            throw new Error('Invalid listen strategy');
-        }
-
-        // we either use custom strategy or one from the listen dir
-        getNodeEvents = strategy.getNodeEvents || require('./src/client/listen/listen_by_' + strategy.name + '.js').getNodeEvents;
-
-        // get array of objs with 1 node and 1 event; add event listener for each
-        nodeEvents = getNodeEvents(document, strategy.config);
-        for (j = 0; j < nodeEvents.length; j++) {
-            nodeEvent = nodeEvents[j];
-
-            console.log('listening to ' + JSON.stringify(nodeEvent));
-            addListener(nodeEvent.node, nodeEvent.eventName, preventDefault);
-        }
+function addListeners(nodeEvents, strategy, opts) {
+    for (var i = 0; i < nodeEvents.length; i++) {
+        var nodeEvent = nodeEvents[i];
+        addListener(nodeEvent, strategy, opts);
     }
 }
 
 /**
- * Replay events
- * @param document
- * @param strategies
+ * Add event handlers
+ * @param opts
  */
-function replayEvents(document, strategies) {
-
-    // if strategies param is not an array just throw an error
-    // preboot_server will handle all the nice type conversions for user convenience
-    if (!strategies || strategies.constructor !== Array) {
-        throw new Error('replay param must be array');
-    }
-
-    // most of the time there will just be one strategy, but more than one can be used
-    var i, strategy, replayEvts;
-    for (i = 0; i < strategies.length; i++) {
-        strategy = strategies[i];
-
-        // a strategy must either have replayEvents (i.e. a custom strategy) or be in list of valid strategies
-        if (!strategy.replayEvents && !replayStrategies[strategy.name]) {
-            throw new Error('Invalid replay strategy');
-        }
+function startListening(opts) {
+    for (var i = 0; i < opts.listen.length; i++) {
+        var strategy = opts.listen[i];
 
         // we either use custom strategy or one from the listen dir
-        replayEvts = strategy.replayEvents || require('./src/client/replay/replay_after_' + strategy.name + '.js').replayEvents;
+        var getNodeEvents = strategy.getNodeEvents ||
+            require('./listen/listen_by_' + strategy.name + '.js').getNodeEvents;
 
         // get array of objs with 1 node and 1 event; add event listener for each
-        events = replayEvts(document, events, strategy.config);
+        var nodeEvents = getNodeEvents(strategy, opts);
+        addListeners(nodeEvents, strategy, opts);
+    }
+}
+
+/**
+ * Loop through replay strategies and call replayEvents functions
+ * @param opts
+ */
+function replayEvents(opts) {
+
+    // loop through replay strategies
+    for (var i = 0; i < opts.replay.length; i++) {
+        var strategy = opts.replay[i];
+
+        // we either use custom strategy or one from the listen dir
+        var replayEvents = strategy.replayEvents ||
+            require('./replay/replay_after_' + strategy.name + '.js').replayEvents;
+
+        // get array of objs with 1 node and 1 event; add event listener for each
+        events = replayEvents(events, strategy, opts);
     }
 
     //TODO: figure out better solution for remaining events
@@ -343,78 +288,13 @@ module.exports = {
 };
 },{}],3:[function(require,module,exports){
 /**
- * Author: Jeff Whelpley
- * Date: 6/4/15
- *
- * This is used when there is a rerender and we need to find the
- * client rendered node that matches a server rendered node. It
- * is used by replay_after_rerender and focus_manager
- */
-var nodeCache = {};
-
-/**
- * Given a node from the server rendered view, find the equivalent
- * node in the client rendered view.
- *
- * @param document
- * @param serverNode
- */
-module.exports = function findClientNode(document, serverNode) {
-
-    // if nothing passed in, then no client node
-    if (!serverNode) { return null; }
-
-    // we use the string of the node to compare to the client node & as key in cache
-    var serverNodeString = serverNode.toString();
-
-    // first check to see if we already mapped this node
-    var nodes = nodeCache[serverNodeString] || [];
-    for (var i = 0; i < nodes.length; i++) {
-        if (nodes[i].serverNode === serverNode) {
-            return nodes[i].clientNode;
-        }
-    }
-
-    //TODO: improve this algorithm in the future
-    var selector = serverNode.tagName;
-    if (serverNode.id) {
-        selector += '#' + serverNode.id;
-    }
-    else if (serverNode.className) {
-        selector += serverNode.className.replace(/ /g, '.');
-    }
-
-    var clientNodes = document.querySelectorAll(selector);
-    var clientNode;
-    for (i = 0; i < clientNodes.length; i++) {
-        clientNode = clientNodes[i];
-
-        //TODO: this assumes a perfect match which isn't necessarily true
-        if (clientNode.toString() === serverNodeString) {
-
-            // add the client/server node pair to the cache
-            nodeCache[serverNodeString] = nodeCache[serverNodeString] || [];
-            nodeCache[serverNodeString].push({
-                clientNode: clientNode,
-                serverNode: serverNode
-            });
-
-            return clientNode;
-        }
-    }
-
-    // if we get here it means we couldn't find the client node
-    return null;
-};
-},{}],4:[function(require,module,exports){
-/**
  * Copyright 2014 GetHuman LLC
  * Author: Jeff Whelpley
  * Date: 6/2/15
  *
  * Manage focus
  */
-var findClientNode = require('../find/find_client_node');
+var domSelector = require('../select/dom_selector');
 var currentFocus = null;
 var trackingEnabled = false;
 
@@ -461,10 +341,12 @@ function stopTracking() {
 
 /**
  * Set focus at the last known location
+ * @param opts
  */
-function setFocus(document) {
+function setFocus(opts) {
     console.log('attempting to set focus to ' + (currentFocus && currentFocus.tagName));
-    var clientNode = findClientNode(document, currentFocus);
+
+    var clientNode = domSelector.findClientNode(currentFocus, opts);
     if (clientNode) {
         clientNode.focus();
 
@@ -478,7 +360,118 @@ module.exports = {
     stopTracking: stopTracking,
     setFocus: setFocus
 };
-},{"../find/find_client_node":3}],5:[function(require,module,exports){
+},{"../select/dom_selector":4}],4:[function(require,module,exports){
+/**
+ * Author: Jeff Whelpley
+ * Date: 6/4/15
+ *
+ * This is used when there is a rerender and we need to find the
+ * client rendered node that matches a server rendered node. It
+ * is used by replay_after_rerender and focus_manager
+ */
+var nodeCache = {};
+
+/**
+ * Get a unique key for a node in the DOM
+ * @param node
+ * @param rootNode - Need to know how far up we go
+ */
+function getNodeKey(node, rootNode) {
+    var ancestors = [];
+    var temp = node;
+    while (temp && temp.nodeName !== rootNode) {
+        ancestors.push(temp);
+        temp = temp.parentNode;
+    }
+
+    // push the rootNode on the ancestors
+    if (temp) {
+        ancestors.push(temp);
+    }
+
+    // now go backwards starting from the root
+    var key = node.nodeName;
+    var len = ancestors.length;
+    var i, j;
+
+    for (i = (len - 1); i >= 0; i--) {
+        temp = ancestors[i];
+
+        key += '_d' + (len - i);
+
+        if (temp.childNodes && i > 0) {
+            for (j = 0; j < temp.childNodes.length; j++) {
+                if (temp.childNodes[j] === ancestors[i - 1]) {
+                    key += '_s' + (j + 1);
+                    break;
+                }
+            }
+        }
+    }
+
+    return key;
+}
+
+/**
+ * Given a node from the server rendered view, find the equivalent
+ * node in the client rendered view.
+ *
+ * @param serverNode
+ * @param opts
+ */
+function findClientNode(serverNode, opts) {
+
+    // if nothing passed in, then no client node
+    if (!serverNode) { return null; }
+
+    // we use the string of the node to compare to the client node & as key in cache
+    var serverNodeKey = getNodeKey(serverNode, opts.serverRoot);
+
+    // first check to see if we already mapped this node
+    var nodes = nodeCache[serverNodeKey] || [];
+    for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i].serverNode === serverNode) {
+            return nodes[i].clientNode;
+        }
+    }
+
+    //TODO: improve this algorithm in the future
+    var selector = serverNode.tagName;
+    if (serverNode.id) {
+        selector += '#' + serverNode.id;
+    }
+    else if (serverNode.className) {
+        selector += serverNode.className.replace(/ /g, '.');
+    }
+
+    var clientNodes = opts.document.querySelectorAll(selector);
+    var clientNode;
+    for (i = 0; i < clientNodes.length; i++) {
+        clientNode = clientNodes[i];
+
+        //TODO: this assumes a perfect match which isn't necessarily true
+        if (getNodeKey(clientNode, opts.clientRoot) === serverNodeKey) {
+
+            // add the client/server node pair to the cache
+            nodeCache[serverNodeKey] = nodeCache[serverNodeKey] || [];
+            nodeCache[serverNodeKey].push({
+                clientNode: clientNode,
+                serverNode: serverNode
+            });
+
+            return clientNode;
+        }
+    }
+
+    // if we get here it means we couldn't find the client node
+    return null;
+}
+
+module.exports = {
+    getNodeKey: getNodeKey,
+    findClientNode: findClientNode
+};
+},{}],5:[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
  * Date: 6/2/15
@@ -521,47 +514,112 @@ module.exports = {
  *              completeEvent - Name of event that will be raised on the document
  *                       when the client application bootstrap has completed
  */
-(function (document, opts) {
-    var eventManager = require('./event_manager');
-    var focusManager = require('./focus/focus_manager');
-    var bufferManager = require('./buffer/buffer_manager');
+var eventManager = require('./event_manager');
+var focusManager = require('./focus/focus_manager');
+var bufferManager = require('./buffer/buffer_manager');
+var canComplete = true;  // set to false if preboot paused through an event
+var completeCalled = false; // set to true once the completion event has been raised
 
-    opts = opts || {};                                      // set default value for opts
+/**
+ * Most of the options should have been normalized by the clientCodeGenerator, so if
+ * no options here, throw error. Really all this is for is to add window/document
+ * based objects to the opts.
+ *
+ * @param opts
+ */
+function normalizeOptions(opts) {
+    var document = opts.document = window.document;
+    opts.serverRoot = document.querySelectorAll(opts.serverRoot || opts.clientRoot || 'body');
+    opts.clientRoot = opts.clientRoot ? document.querySelectorAll(opts.clientRoot) : opts.serverRoot;
+}
 
-    //TODO: only potentially do switch over when user tabs out
-    //TODO: spinner if user clicks on a button (how would user define this)
-    //TODO: timeout for events
-
-    // as soon as the document loads, start running
-    window.onload = function() {
+/**
+ * Get function to run once window has loaded
+ * @param opts
+ * @returns {Function}
+ */
+function getOnLoadHandler(opts) {
+    return function onLoad() {
         if (opts.buffer) {
-            bufferManager.hideClient(document, opts.clientRoot);
+            bufferManager.hideClient(opts.clientRoot);          // make sure client root is hidden
         }
 
-        eventManager.startListening(document, opts.listen);     // add all the event handlers
+        eventManager.startListening(opts);                      // add all the event handlers
 
         if (opts.focus) {
-            focusManager.startTracking(document);               // start tracking focus on the page
+            focusManager.startTracking(opts.document);          // start tracking focus on the page
         }
     };
+}
 
-    // listen for bootstrap complete event
-    document.addEventListener(opts.completeEvent || 'BootstrapComplete', function () {
+/**
+ * Get a function to run once bootstrap has completed
+ * @param opts
+ * @returns {Function}
+ */
+function getBootstrapCompleteHandler(opts) {
+    return function onComplete() {
         console.log('preboot got BootstrapComplete event');
 
+        // track that complete has been called and don't do anything if we can't complete
+        completeCalled = true;
+        if (!canComplete) { return; }
+
+        // can complete, so run it
         if (opts.focus) { focusManager.stopTracking(); }        // stop tracking focus so we retain the last focus
+        eventManager.replayEvents(opts);                        // replay events on client DOM
+        if (opts.buffer) { bufferManager.switchBuffer(opts); }  // switch from server to client buffer
+        if (opts.focus) { focusManager.setFocus(opts); }        // set focus on client buffer
+        eventManager.cleanup();                                 // cleanup event listeners
+    };
+}
 
-        eventManager.replayEvents(document, opts.replay);       // replay events
+/**
+ * Pause the completion process
+ */
+function pauseCompletion() {
+    canComplete = false;
+}
 
-        // now that we have replayed the events, if a buffer exists switch it so client view displayed
-        if (opts.buffer) {
-            bufferManager.switchBuffer(document, opts.clientRoot, opts.serverRoot);
+/**
+ * Resume the completion process; if complete already called,
+ * call it again right away.
+ *
+ * @param opts
+ * @returns {Function}
+ */
+function getResumeCompleteHandler(opts) {
+    return function onPause() {
+        canComplete = true;
+
+        if (completeCalled) {
+            getBootstrapCompleteHandler(opts)();
         }
+    };
+}
 
-        if (opts.focus) { focusManager.setFocus(document); }    // set focus if an option
+/**
+ * Start preboot
+ * @param opts
+ */
+function start(opts) {
+    normalizeOptions(opts);
+    window.onload = getOnLoadHandler(opts);
+    window.document.addEventListener(opts.pauseEvent, pauseCompletion);
+    window.document.addEventListener(opts.resumeEvent, getResumeCompleteHandler(opts));
+    window.document.addEventListener(opts.completeEvent, getBootstrapCompleteHandler(opts));
+}
 
-        eventManager.cleanup();                                 // do final event cleanup
-    });
-})(window.document, window.prebootOptions);
+// only expose start
+module.exports = {
+    eventManager: eventManager,
+    focusManager: focusManager,
+    bufferManager: bufferManager,
+    start: start
+};
 
-},{"./buffer/buffer_manager":1,"./event_manager":2,"./focus/focus_manager":4}]},{},[5]);
+},{"./buffer/buffer_manager":1,"./event_manager":2,"./focus/focus_manager":3}]},{},[5])(5)
+});
+
+preboot.init({"focus":true,"buffer":false,"keypress":true,"serverRoot":"div.server","clientRoot":"div.client","completeEvent":"BootstrapComplete","pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","listen":[{"name":"list","eventsBySelector":{"input[type=\"text\"]":["keypress","keyup","keydown"],"textarea":["keypress","keyup","keydown"]}}],"replay":[{"name":"rerender"}]});
+
