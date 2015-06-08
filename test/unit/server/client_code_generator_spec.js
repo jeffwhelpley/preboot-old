@@ -9,19 +9,39 @@ var taste       = require('taste');
 var generator   = taste.target(name);
 
 describe('UNIT ' + name, function () {
-    describe('getPrebootOptions()', function () {
+    describe('stringifyWithFunctions()', function () {
         it('should stringify basic object', function () {
             var obj = { blah: 'foo' };
             var expected = JSON.stringify(obj);
-            var actual = generator.getPrebootOptions(obj);
+            var actual = generator.stringifyWithFunctions(obj);
             actual.should.equal(expected);
         });
 
         it('should stringify with functions', function () {
             var obj = { blah: 'foo', zoo: function (blah) { return blah + 1; }};
             var expected = '{"blah":"foo","zoo":"function (blah) { return blah + 1; }"}';
-            var actual = generator.getPrebootOptions(obj);
+            var actual = generator.stringifyWithFunctions(obj);
             actual.should.equal(expected);
+        });
+    });
+
+    describe('normalizeOptions()', function () {
+        it('should set defaults even if nothing passed in', function () {
+            var expected = {
+                completeEvent: 'BootstrapComplete',
+                pauseEvent: 'PrebootPause',
+                resumeEvent: 'PrebootResume',
+                listen: [],
+                replay: []
+            };
+            var actual = generator.normalizeOptions();
+            actual.should.deep.equal(expected);
+        });
+    });
+
+    describe('getClientCodeStream()', function () {
+        it('should return some client code by default', function () {
+            return generator.getClientCodeStream();
         });
     });
 
@@ -33,10 +53,6 @@ describe('UNIT ' + name, function () {
                     done();
                 })
                 .catch(done);
-        });
-
-        it('should return some client code by default', function () {
-            return generator.getClientCodeStream();
         });
     });
 });

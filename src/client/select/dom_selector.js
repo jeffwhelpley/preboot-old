@@ -81,10 +81,10 @@ function findClientNode(serverNode, opts) {
         selector += serverNode.className.replace(/ /g, '.');
     }
 
-    var clientNodes = opts.document.querySelectorAll(selector);
-    var clientNode;
-    for (i = 0; i < clientNodes.length; i++) {
-        clientNode = clientNodes[i];
+    var root = opts.clientRoot || opts.document;
+    var clientNodes = root.querySelectorAll(selector);
+    for (i = 0; clientNodes && i < clientNodes.length; i++) {
+        var clientNode = clientNodes[i];
 
         //TODO: this assumes a perfect match which isn't necessarily true
         if (getNodeKey(clientNode, opts.clientRoot) === serverNodeKey) {

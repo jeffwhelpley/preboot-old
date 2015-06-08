@@ -27,18 +27,10 @@ function replayEvents(events, strategy, opts) {
         eventData = events[i];
         event = eventData.event;
         serverNode = eventData.node;
-
-        console.log('attempting to find ' + serverNode.tagName + ' for replay');
         clientNode = domSelector.findClientNode(serverNode, opts);
-
-        if (clientNode) {
-            console.log('found node ' + clientNode.tagName + ' and dispatching event');
-            clientNode.dispatchEvent(event);
-        }
-        else {
-            console.log('did not find node for ' + clientNode.tagName);
+        clientNode ?
+            clientNode.dispatchEvent(event) :
             remainingEvents.push(eventData);
-        }
     }
 
     return remainingEvents;

@@ -10,7 +10,8 @@
  */
 function getNodeEvents(strategy, opts) {
     var attributeName = strategy.attributeName || 'preboot-events';
-    var elems = opts.document.querySelectorAll('[' + attributeName + ']');
+    var root = opts.serverRoot || opts.document;
+    var elems = root.querySelectorAll('[' + attributeName + ']');
 
     // if no elements found, return empty array since no node events
     if (!elems) { return []; }

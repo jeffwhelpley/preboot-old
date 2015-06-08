@@ -57,14 +57,13 @@ describe('UNIT ' + name, function () {
             }]
         };
         var clientRoot = clientDocument.childNodes[2];
+        clientRoot.querySelectorAll = function () {
+            return [clientNode];
+        };
         var opts = {
             serverRoot: serverRoot,
             clientRoot: clientRoot,
-            document: {
-                querySelectorAll: function () {
-                    return [clientNode];
-                }
-            }
+            document: {}
         };
 
         addParent(serverDocument);

@@ -22,6 +22,7 @@ describe('UNIT ' + name, function () {
         it('should set clientRoot to display block', function () {
             var clientRoot = { style: {}};
             var expected = 'block';
+            bufferMgr.state.switched = false;
             bufferMgr.switchBuffer({ clientRoot: clientRoot });
             clientRoot.style.display.should.equal(expected);
         });
@@ -31,6 +32,7 @@ describe('UNIT ' + name, function () {
             var serverRoot = { remove: taste.spy() };
             var opts = { clientRoot: clientRoot, serverRoot: serverRoot };
             var expected = 'block';
+            bufferMgr.state.switched = false;
             bufferMgr.switchBuffer(opts);
             clientRoot.style.display.should.equal(expected);
             serverRoot.remove.should.have.callCount(1);

@@ -1,4 +1,4 @@
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.preboot = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"./listen/listen_by_list.js":[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.preboot = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"./listen/listen_by_selectors.js":[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
  * Date: 6/2/15
@@ -9,9 +9,8 @@
  * @param opts
  */
 function getNodeEvents(strategy, opts) {
-    config = config || {};
-
     var nodeEvents = [];
+    var root = opts.serverRoot || opts.document;
     var eventsBySelector = strategy.eventsBySelector || {};
     var selectors = Object.keys(eventsBySelector);
     var selectorIdx, selector, elem, elems, i, j, events;
@@ -19,8 +18,8 @@ function getNodeEvents(strategy, opts) {
     // loop through selectors
     for (selectorIdx = 0; selectorIdx < selectors.length; selectorIdx++) {
         selector = selectors[selectorIdx];
-        events = eventsBySelector[selector].split(',');
-        elems = opts.document.querySelectorAll(selector);
+        events = eventsBySelector[selector];
+        elems = root.querySelectorAll(selector);
 
         // only do something if there are elements found
         if (elems) {
@@ -33,7 +32,7 @@ function getNodeEvents(strategy, opts) {
                 for (j = 0; j < events.length; j++) {
                     nodeEvents.push({
                         node:       elem,
-                        eventName:  events[i]
+                        eventName:  events[j]
                     });
                 }
             }
@@ -86,7 +85,7 @@ function replayEvents(events, strategy, opts) {
             clientNode.dispatchEvent(event);
         }
         else {
-            console.log('did not find node for ' + clientNode.tagName);
+            console.log('did not find node for ' + serverNode.tagName);
             remainingEvents.push(eventData);
         }
     }
@@ -123,14 +122,18 @@ function hideClient(clientRoot) {
 function switchBuffer(opts) {
     console.log('switching from server buffer to client buffer');
 
-    //TODO: this does not work at all on IE; need alternative
+    var clientRoot = opts.clientRoot;
+    var serverRoot = opts.serverRoot;
+
     // remove the server root if not same as client and not the body
-    if (opts.serverRoot !== opts.clientRoot && opts.serverRoot.nodeName !== 'BODY') {
-        opts.serverRoot.remove();
+    if (serverRoot && serverRoot !== clientRoot && serverRoot.nodeName !== 'BODY') {
+        serverRoot.remove ?
+            serverRoot.remove() :
+            serverRoot.style.display = 'none';
     }
 
     // display the client
-    opts.clientRoot.style.display = 'block';
+    clientRoot.style.display = 'block';
 }
 
 module.exports = {
@@ -144,12 +147,48 @@ module.exports = {
  *
  * Handling events on the client side
  */
-var eventListeners = [];
-var events = [];
+var state = {
+    eventListeners: [],
+    events: [],
+    overlay: null
+};
 
 /* jshint camelcase: false */
-var listenStrategies = { attributes: true, event_bindings: true, list: true };
+var listenStrategies = { attributes: true, event_bindings: true, selectors: true };
 var replayStrategies = { hydrate: true, rerender: true };
+
+/**
+ * Hide the overlay by setting to display none
+ */
+function hideOverlay() {
+    if (state.overlay) {
+        state.overlay.style.display = 'none';
+    }
+}
+
+/**
+ * Display overlay by sticking div at end of body
+ * @param document
+ * @param timeout - So that we can timeout quickly for unit tests
+ */
+function displayOverlay(document, timeout) {
+    var overlay = state.overlay = document.createElement('div');
+    var style = overlay.style;
+
+    overlay.className = 'preboot-overlay';
+    style.zIndex = '9999999';
+    style.position = 'absolute';
+    style.top = '0';
+    style.left = '0';
+    style.width = '100%';
+    style.height = '100%';
+    style.background = '#263741';
+    style.opacity = '.27';
+    document.body.appendChild(overlay);
+
+    // hide overlay after 4 seconds regardless of whether bootstrap complete
+    setTimeout(hideOverlay, (timeout || 4000));
+}
 
 /**
  * For a given node, add an event listener based on the given attribute. The attribute
@@ -183,9 +222,14 @@ function addListener(nodeEvent, strategy, opts) {
             strategy.action(node, event);
         }
 
+        // if we should show overlay when user hits button so there is no further action
+        if (strategy.overlay) {
+            displayOverlay(document);
+        }
+
         // we will record events for later replay unless explicitly marked as doNotReplay
         if (!strategy.doNotReplay) {
-            events.push({
+            state.events.push({
                 node:       node,
                 event:      event,
                 name:       eventName,
@@ -196,7 +240,7 @@ function addListener(nodeEvent, strategy, opts) {
 
     // add the actual event listener and keep a ref so we can remove the listener during cleanup
     node.addEventListener(eventName, handler);
-    eventListeners.push({
+    state.eventListeners.push({
         node:       node,
         name:       eventName,
         handler:    handler
@@ -221,8 +265,10 @@ function addListeners(nodeEvents, strategy, opts) {
  * @param opts
  */
 function startListening(opts) {
-    for (var i = 0; i < opts.listen.length; i++) {
-        var strategy = opts.listen[i];
+    var listenStrategies = opts.listen || [];
+
+    for (var i = 0; i < listenStrategies.length; i++) {
+        var strategy = listenStrategies[i];
 
         // we either use custom strategy or one from the listen dir
         var getNodeEvents = strategy.getNodeEvents ||
@@ -239,24 +285,24 @@ function startListening(opts) {
  * @param opts
  */
 function replayEvents(opts) {
+    var replayStrategies = opts.replay || [];
 
-    // loop through replay strategies
-    for (var i = 0; i < opts.replay.length; i++) {
-        var strategy = opts.replay[i];
+    for (var i = 0; i < replayStrategies.length; i++) {
+        var strategy = replayStrategies[i];
 
         // we either use custom strategy or one from the listen dir
         var replayEvents = strategy.replayEvents ||
             require('./replay/replay_after_' + strategy.name + '.js').replayEvents;
 
         // get array of objs with 1 node and 1 event; add event listener for each
-        events = replayEvents(events, strategy, opts);
+        state.events = replayEvents(state.events, strategy, opts);
     }
 
     //TODO: figure out better solution for remaining events
     // if some events are remaining, log to the console
-    if (events && events.length) {
+    if (state.events && state.events.length) {
         console.log('Not all events replayed: ');
-        console.log(events);
+        console.log(state.events);
     }
 }
 
@@ -270,18 +316,25 @@ function cleanup() {
     console.log('cleaning up listeners');
 
     // first cleanup the event listeners
-    for (var i = 0; i < eventListeners.length; i++) {
-        listener = eventListeners[i];
+    for (var i = 0; i < state.eventListeners.length; i++) {
+        listener = state.eventListeners[i];
         node = listener.node;
         node.removeEventListener(listener.name, listener.handler);
     }
 
+    // hide overlay if it exists
+    hideOverlay();
+
     // now remove the events
-    events = [];
+    state.events = [];
 }
 
 module.exports = {
+    state: state,
+    hideOverlay: hideOverlay,
+    displayOverlay: displayOverlay,
     addListener: addListener,
+    addListeners: addListeners,
     startListening: startListening,
     replayEvents: replayEvents,
     cleanup: cleanup
@@ -295,8 +348,10 @@ module.exports = {
  * Manage focus
  */
 var domSelector = require('../select/dom_selector');
-var currentFocus = null;
-var trackingEnabled = false;
+var state = {
+    currentFocus: null,
+    trackingEnabled: false
+};
 
 /**
  * Check the focus and then recursively call again after 50ms.
@@ -304,14 +359,14 @@ var trackingEnabled = false;
  * @param document
  */
 function checkFocus(document) {
-    if (trackingEnabled) {
+    if (state.trackingEnabled) {
 
-        if (document.activeElement && document.activeElement !== currentFocus) {
+        if (document.activeElement && document.activeElement !== state.currentFocus) {
             console.log('focus changed to ' + document.activeElement.tagName);
         }
 
         // if no active element, keep a ref for the last known one
-        currentFocus = document.activeElement || currentFocus;
+        state.currentFocus = document.activeElement || state.currentFocus;
 
         // call this again recursively after 50 milliseconds
         setTimeout(function () {
@@ -327,16 +382,16 @@ function checkFocus(document) {
 function startTracking(document) {
     console.log('starting to track focus');
 
-    trackingEnabled = true;
+    state.trackingEnabled = true;
     checkFocus(document);
 }
 
 /**
- * This will stop currentFocus ref from changing
+ * This will stop state.currentFocus ref from changing
  */
 function stopTracking() {
     console.log('stopping focus tracking');
-    trackingEnabled = false;
+    state.trackingEnabled = false;
 }
 
 /**
@@ -344,9 +399,9 @@ function stopTracking() {
  * @param opts
  */
 function setFocus(opts) {
-    console.log('attempting to set focus to ' + (currentFocus && currentFocus.tagName));
+    console.log('attempting to set focus to ' + (state.currentFocus && state.currentFocus.tagName));
 
-    var clientNode = domSelector.findClientNode(currentFocus, opts);
+    var clientNode = domSelector.findClientNode(state.currentFocus, opts);
     if (clientNode) {
         clientNode.focus();
 
@@ -355,6 +410,7 @@ function setFocus(opts) {
 }
 
 module.exports = {
+    state: state,
     checkFocus: checkFocus,
     startTracking: startTracking,
     stopTracking: stopTracking,
@@ -379,7 +435,7 @@ var nodeCache = {};
 function getNodeKey(node, rootNode) {
     var ancestors = [];
     var temp = node;
-    while (temp && temp.nodeName !== rootNode) {
+    while (temp && temp !== rootNode) {
         ancestors.push(temp);
         temp = temp.parentNode;
     }
@@ -397,7 +453,7 @@ function getNodeKey(node, rootNode) {
     for (i = (len - 1); i >= 0; i--) {
         temp = ancestors[i];
 
-        key += '_d' + (len - i);
+        //key += '_d' + (len - i);
 
         if (temp.childNodes && i > 0) {
             for (j = 0; j < temp.childNodes.length; j++) {
@@ -444,10 +500,10 @@ function findClientNode(serverNode, opts) {
         selector += serverNode.className.replace(/ /g, '.');
     }
 
-    var clientNodes = opts.document.querySelectorAll(selector);
-    var clientNode;
-    for (i = 0; i < clientNodes.length; i++) {
-        clientNode = clientNodes[i];
+    var root = opts.clientRoot || opts.document;
+    var clientNodes = root.querySelectorAll(selector);
+    for (i = 0; clientNodes && i < clientNodes.length; i++) {
+        var clientNode = clientNodes[i];
 
         //TODO: this assumes a perfect match which isn't necessarily true
         if (getNodeKey(clientNode, opts.clientRoot) === serverNodeKey) {
@@ -468,6 +524,7 @@ function findClientNode(serverNode, opts) {
 }
 
 module.exports = {
+    nodeCache: nodeCache,
     getNodeKey: getNodeKey,
     findClientNode: findClientNode
 };
@@ -517,8 +574,10 @@ module.exports = {
 var eventManager = require('./event_manager');
 var focusManager = require('./focus/focus_manager');
 var bufferManager = require('./buffer/buffer_manager');
-var canComplete = true;  // set to false if preboot paused through an event
-var completeCalled = false; // set to true once the completion event has been raised
+var state = {
+    canComplete: true,      // set to false if preboot paused through an event
+    completeCalled: false   // set to true once the completion event has been raised
+};
 
 /**
  * Most of the options should have been normalized by the clientCodeGenerator, so if
@@ -529,8 +588,8 @@ var completeCalled = false; // set to true once the completion event has been ra
  */
 function normalizeOptions(opts) {
     var document = opts.document = window.document;
-    opts.serverRoot = document.querySelectorAll(opts.serverRoot || opts.clientRoot || 'body');
-    opts.clientRoot = opts.clientRoot ? document.querySelectorAll(opts.clientRoot) : opts.serverRoot;
+    opts.serverRoot = document.querySelectorAll(opts.serverRoot || opts.clientRoot || 'body')[0];
+    opts.clientRoot = opts.clientRoot ? document.querySelectorAll(opts.clientRoot)[0] : opts.serverRoot;
 }
 
 /**
@@ -540,6 +599,9 @@ function normalizeOptions(opts) {
  */
 function getOnLoadHandler(opts) {
     return function onLoad() {
+
+        normalizeOptions(opts);                                 // get the server and client roots
+
         if (opts.buffer) {
             bufferManager.hideClient(opts.clientRoot);          // make sure client root is hidden
         }
@@ -562,8 +624,8 @@ function getBootstrapCompleteHandler(opts) {
         console.log('preboot got BootstrapComplete event');
 
         // track that complete has been called and don't do anything if we can't complete
-        completeCalled = true;
-        if (!canComplete) { return; }
+        state.completeCalled = true;
+        if (!state.canComplete) { return; }
 
         // can complete, so run it
         if (opts.focus) { focusManager.stopTracking(); }        // stop tracking focus so we retain the last focus
@@ -578,7 +640,7 @@ function getBootstrapCompleteHandler(opts) {
  * Pause the completion process
  */
 function pauseCompletion() {
-    canComplete = false;
+    state.canComplete = false;
 }
 
 /**
@@ -590,9 +652,9 @@ function pauseCompletion() {
  */
 function getResumeCompleteHandler(opts) {
     return function onPause() {
-        canComplete = true;
+        state.canComplete = true;
 
-        if (completeCalled) {
+        if (state.completeCalled) {
             getBootstrapCompleteHandler(opts)();
         }
     };
@@ -603,7 +665,6 @@ function getResumeCompleteHandler(opts) {
  * @param opts
  */
 function start(opts) {
-    normalizeOptions(opts);
     window.onload = getOnLoadHandler(opts);
     window.document.addEventListener(opts.pauseEvent, pauseCompletion);
     window.document.addEventListener(opts.resumeEvent, getResumeCompleteHandler(opts));
@@ -621,5 +682,5 @@ module.exports = {
 },{"./buffer/buffer_manager":1,"./event_manager":2,"./focus/focus_manager":3}]},{},[5])(5)
 });
 
-preboot.init({"focus":true,"buffer":false,"keypress":true,"serverRoot":"div.server","clientRoot":"div.client","completeEvent":"BootstrapComplete","pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","listen":[{"name":"list","eventsBySelector":{"input[type=\"text\"]":["keypress","keyup","keydown"],"textarea":["keypress","keyup","keydown"]}}],"replay":[{"name":"rerender"}]});
+preboot.start({"focus":true,"buffer":true,"keyPress":true,"buttonPress":true,"pauseOnTyping":true,"serverRoot":"div.server","clientRoot":"div.client","completeEvent":"BootstrapComplete","pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","listen":[{"name":"selectors","eventsBySelector":{"input[type=\"text\"]":["keypress","keyup","keydown"],"textarea":["keypress","keyup","keydown"]}},{"name":"selectors","overlay":true,"eventsBySelector":{"input[type=\"submit\"]":["click"],"button":["click"]}},{"name":"selectors","eventsBySelector":{"input[type=\"text\"]":["focus"],"textarea":["focus"]},"doNotReplay":true,"dispatchEvent":"PrebootPause"},{"name":"selectors","eventsBySelector":{"input[type=\"text\"]":["blur"],"textarea":["blur"]},"doNotReplay":true,"dispatchEvent":"PrebootResume"}],"replay":[{"name":"rerender"}]});
 

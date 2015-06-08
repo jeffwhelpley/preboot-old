@@ -4,13 +4,15 @@
  *
  * Manage the switching of buffers
  */
+var state = {
+    switched: false
+};
 
 /**
  * The client is hidden while the client is bootstrapping
  * @param clientRoot
  */
 function hideClient(clientRoot) {
-    console.log('hiding client');
     clientRoot.style.display = 'none';
 }
 
@@ -21,22 +23,26 @@ function hideClient(clientRoot) {
  * @param opts
  */
 function switchBuffer(opts) {
-    console.log('switching from server buffer to client buffer');
-
     var clientRoot = opts.clientRoot;
     var serverRoot = opts.serverRoot;
 
-    //TODO: this does not work at all on IE; need alternative
+    // don't do anything if already switched
+    if (state.switched) { return; }
+
     // remove the server root if not same as client and not the body
     if (serverRoot && serverRoot !== clientRoot && serverRoot.nodeName !== 'BODY') {
-        serverRoot.remove();
+        serverRoot.remove ?
+            serverRoot.remove() :
+            serverRoot.style.display = 'none';
     }
 
-    // display the client
+    // display the client and mark state as switched
     clientRoot.style.display = 'block';
+    state.switched = true;
 }
 
 module.exports = {
+    state: state,
     hideClient: hideClient,
     switchBuffer: switchBuffer
 };

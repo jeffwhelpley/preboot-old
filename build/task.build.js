@@ -11,8 +11,11 @@ var clientCodeGenerator = require('../src/server/client_code_generator');
 module.exports = function (gulp, opts) {
     var prebootOptions = opts.prebootOptions || {
             focus:          true,
-            buffer:         false,
-            keypress:       true,
+            buffer:         true,
+            keyPress:       true,
+            buttonPress:    true,
+            pauseOnTyping:  true,
+            replay:         'rerender',
             serverRoot:     'div.server',
             clientRoot:     'div.client',
             completeEvent:  'BootstrapComplete'

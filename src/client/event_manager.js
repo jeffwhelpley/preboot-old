@@ -4,42 +4,47 @@
  *
  * Handling events on the client side
  */
-var eventListeners = [];
-var events = [];
-var overlay = null;
+var state = {
+    eventListeners: [],
+    events: [],
+    overlay: null
+};
 
 /* jshint camelcase: false */
-var listenStrategies = { attributes: true, event_bindings: true, list: true };
+var listenStrategies = { attributes: true, event_bindings: true, selectors: true };
 var replayStrategies = { hydrate: true, rerender: true };
 
 /**
  * Hide the overlay by setting to display none
  */
 function hideOverlay() {
-    if (overlay) {
-        overlay.style.display = 'none';
+    if (state.overlay) {
+        state.overlay.style.display = 'none';
     }
 }
 
 /**
  * Display overlay by sticking div at end of body
  * @param document
+ * @param timeout - So that we can timeout quickly for unit tests
  */
-function displayOverlay(document) {
-    overlay = document.createElement('div');
+function displayOverlay(document, timeout) {
+    var overlay = state.overlay = document.createElement('div');
+    var style = overlay.style;
+
     overlay.className = 'preboot-overlay';
-    overlay.style.zIndex = '9999999';
-    overlay.style.position = 'absolute';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
-    overlay.style.background = '#263741';
-    overlay.style.opacity = '.27';
+    style.zIndex = '9999999';
+    style.position = 'absolute';
+    style.top = '0';
+    style.left = '0';
+    style.width = '100%';
+    style.height = '100%';
+    style.background = '#263741';
+    style.opacity = '.27';
     document.body.appendChild(overlay);
 
     // hide overlay after 4 seconds regardless of whether bootstrap complete
-    setTimeout(hideOverlay, 4000);
+    setTimeout(hideOverlay, (timeout || 4000));
 }
 
 /**
@@ -81,7 +86,7 @@ function addListener(nodeEvent, strategy, opts) {
 
         // we will record events for later replay unless explicitly marked as doNotReplay
         if (!strategy.doNotReplay) {
-            events.push({
+            state.events.push({
                 node:       node,
                 event:      event,
                 name:       eventName,
@@ -92,7 +97,7 @@ function addListener(nodeEvent, strategy, opts) {
 
     // add the actual event listener and keep a ref so we can remove the listener during cleanup
     node.addEventListener(eventName, handler);
-    eventListeners.push({
+    state.eventListeners.push({
         node:       node,
         name:       eventName,
         handler:    handler
@@ -117,8 +122,10 @@ function addListeners(nodeEvents, strategy, opts) {
  * @param opts
  */
 function startListening(opts) {
-    for (var i = 0; i < opts.listen.length; i++) {
-        var strategy = opts.listen[i];
+    var listenStrategies = opts.listen || [];
+
+    for (var i = 0; i < listenStrategies.length; i++) {
+        var strategy = listenStrategies[i];
 
         // we either use custom strategy or one from the listen dir
         var getNodeEvents = strategy.getNodeEvents ||
@@ -135,24 +142,24 @@ function startListening(opts) {
  * @param opts
  */
 function replayEvents(opts) {
+    var replayStrategies = opts.replay || [];
 
-    // loop through replay strategies
-    for (var i = 0; i < opts.replay.length; i++) {
-        var strategy = opts.replay[i];
+    for (var i = 0; i < replayStrategies.length; i++) {
+        var strategy = replayStrategies[i];
 
         // we either use custom strategy or one from the listen dir
         var replayEvents = strategy.replayEvents ||
             require('./replay/replay_after_' + strategy.name + '.js').replayEvents;
 
         // get array of objs with 1 node and 1 event; add event listener for each
-        events = replayEvents(events, strategy, opts);
+        state.events = replayEvents(state.events, strategy, opts);
     }
 
     //TODO: figure out better solution for remaining events
     // if some events are remaining, log to the console
-    if (events && events.length) {
+    if (state.events && state.events.length) {
         console.log('Not all events replayed: ');
-        console.log(events);
+        console.log(state.events);
     }
 }
 
@@ -163,11 +170,9 @@ function replayEvents(opts) {
 function cleanup() {
     var listener, node;
 
-    console.log('cleaning up listeners');
-
     // first cleanup the event listeners
-    for (var i = 0; i < eventListeners.length; i++) {
-        listener = eventListeners[i];
+    for (var i = 0; i < state.eventListeners.length; i++) {
+        listener = state.eventListeners[i];
         node = listener.node;
         node.removeEventListener(listener.name, listener.handler);
     }
@@ -176,11 +181,15 @@ function cleanup() {
     hideOverlay();
 
     // now remove the events
-    events = [];
+    state.events = [];
 }
 
 module.exports = {
+    state: state,
+    hideOverlay: hideOverlay,
+    displayOverlay: displayOverlay,
     addListener: addListener,
+    addListeners: addListeners,
     startListening: startListening,
     replayEvents: replayEvents,
     cleanup: cleanup

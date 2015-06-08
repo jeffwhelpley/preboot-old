@@ -43,8 +43,10 @@
 var eventManager = require('./event_manager');
 var focusManager = require('./focus/focus_manager');
 var bufferManager = require('./buffer/buffer_manager');
-var canComplete = true;  // set to false if preboot paused through an event
-var completeCalled = false; // set to true once the completion event has been raised
+var state = {
+    canComplete: true,      // set to false if preboot paused through an event
+    completeCalled: false   // set to true once the completion event has been raised
+};
 
 /**
  * Most of the options should have been normalized by the clientCodeGenerator, so if
@@ -55,8 +57,8 @@ var completeCalled = false; // set to true once the completion event has been ra
  */
 function normalizeOptions(opts) {
     var document = opts.document = window.document;
-    opts.serverRoot = document.querySelectorAll(opts.serverRoot || opts.clientRoot || 'body');
-    opts.clientRoot = opts.clientRoot ? document.querySelectorAll(opts.clientRoot) : opts.serverRoot;
+    opts.serverRoot = document.querySelectorAll(opts.serverRoot || opts.clientRoot || 'body')[0];
+    opts.clientRoot = opts.clientRoot ? document.querySelectorAll(opts.clientRoot)[0] : opts.serverRoot;
 }
 
 /**
@@ -66,6 +68,9 @@ function normalizeOptions(opts) {
  */
 function getOnLoadHandler(opts) {
     return function onLoad() {
+
+        normalizeOptions(opts);                                 // get the server and client roots
+
         if (opts.buffer) {
             bufferManager.hideClient(opts.clientRoot);          // make sure client root is hidden
         }
@@ -85,11 +90,10 @@ function getOnLoadHandler(opts) {
  */
 function getBootstrapCompleteHandler(opts) {
     return function onComplete() {
-        console.log('preboot got BootstrapComplete event');
 
         // track that complete has been called and don't do anything if we can't complete
-        completeCalled = true;
-        if (!canComplete) { return; }
+        state.completeCalled = true;
+        if (!state.canComplete) { return; }
 
         // can complete, so run it
         if (opts.focus) { focusManager.stopTracking(); }        // stop tracking focus so we retain the last focus
@@ -104,7 +108,7 @@ function getBootstrapCompleteHandler(opts) {
  * Pause the completion process
  */
 function pauseCompletion() {
-    canComplete = false;
+    state.canComplete = false;
 }
 
 /**
@@ -116,9 +120,9 @@ function pauseCompletion() {
  */
 function getResumeCompleteHandler(opts) {
     return function onPause() {
-        canComplete = true;
+        state.canComplete = true;
 
-        if (completeCalled) {
+        if (state.completeCalled) {
             getBootstrapCompleteHandler(opts)();
         }
     };
@@ -129,7 +133,6 @@ function getResumeCompleteHandler(opts) {
  * @param opts
  */
 function start(opts) {
-    normalizeOptions(opts);
     window.onload = getOnLoadHandler(opts);
     window.document.addEventListener(opts.pauseEvent, pauseCompletion);
     window.document.addEventListener(opts.resumeEvent, getResumeCompleteHandler(opts));

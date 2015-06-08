@@ -19,10 +19,6 @@ var state = {
 function checkFocus(document) {
     if (state.trackingEnabled) {
 
-        if (document.activeElement && document.activeElement !== state.currentFocus) {
-            console.log('focus changed to ' + document.activeElement.tagName);
-        }
-
         // if no active element, keep a ref for the last known one
         state.currentFocus = document.activeElement || state.currentFocus;
 
@@ -38,8 +34,6 @@ function checkFocus(document) {
  * @param document
  */
 function startTracking(document) {
-    console.log('starting to track focus');
-
     state.trackingEnabled = true;
     checkFocus(document);
 }
@@ -48,7 +42,6 @@ function startTracking(document) {
  * This will stop state.currentFocus ref from changing
  */
 function stopTracking() {
-    console.log('stopping focus tracking');
     state.trackingEnabled = false;
 }
 
@@ -57,8 +50,6 @@ function stopTracking() {
  * @param opts
  */
 function setFocus(opts) {
-    console.log('attempting to set focus to ' + (state.currentFocus && state.currentFocus.tagName));
-
     var clientNode = domSelector.findClientNode(state.currentFocus, opts);
     if (clientNode) {
         clientNode.focus();

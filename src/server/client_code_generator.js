@@ -15,7 +15,7 @@ var eventStream = require('event-stream');
 var browserify  = require('browserify');
 
 /* jshint camelcase: false */
-var listenStrategies = { attributes: true, event_bindings: true, list: true };
+var listenStrategies = { attributes: true, event_bindings: true, selectors: true };
 var replayStrategies = { hydrate: true, rerender: true };
 
 // map of input opts to client code
@@ -70,20 +70,31 @@ function normalizeOptions(opts) {
     });
 
     // if keypress, add strategy for capturing all keypress events
-    if (opts.keypress) {
+    if (opts.keyPress) {
         opts.listen.push({
-            name: 'list',
+            name: 'selectors',
             eventsBySelector: {
                 'input[type="text"]':   ['keypress', 'keyup', 'keydown'],
                 'textarea':             ['keypress', 'keyup', 'keydown']
             }
-        })
+        });
+    }
+
+    if (opts.buttonPress) {
+        opts.listen.push({
+            name: 'selectors',
+            overlay: true,
+            eventsBySelector: {
+                'input[type="submit"]': ['click'],
+                'button':               ['click']
+            }
+        });
     }
 
     // if we want to wait pause bootstrap completion while the user is typing
     if (opts.pauseOnTyping) {
         opts.listen.push({
-            name: 'list',
+            name: 'selectors',
             eventsBySelector: {
                 'input[type="text"]':   ['focus'],
                 'textarea':             ['focus']
@@ -92,7 +103,7 @@ function normalizeOptions(opts) {
             dispatchEvent: opts.pauseEvent
         });
         opts.listen.push({
-            name: 'list',
+            name: 'selectors',
             eventsBySelector: {
                 'input[type="text"]':   ['blur'],
                 'textarea':             ['blur']
@@ -100,14 +111,6 @@ function normalizeOptions(opts) {
             doNotReplay: true,
             dispatchEvent: opts.resumeEvent
         });
-    }
-
-    // set default values if none exist
-    if (!opts.listen.length) {
-        opts.listen.push({ name: 'attributes' });
-    }
-    if (!opts.replay.length) {
-        opts.replay.push({ name: 'rerender' });
     }
 
     return opts;
@@ -170,7 +173,7 @@ function getClientCodeStream(opts) {
     var outputStream = b.bundle()
         .pipe(source('src/client/preboot_client.js'))
         .pipe(buffer())
-        .pipe(insert.append('\n\npreboot.init(' + stringifyWithFunctions(opts) + ');\n\n'));
+        .pipe(insert.append('\n\npreboot.start(' + stringifyWithFunctions(opts) + ');\n\n'));
 
     // uglify if the option is passed in
     return opts.uglify ? outputStream.pipe(uglify()) : outputStream;
@@ -218,7 +221,8 @@ function getClientCode(opts, done) {
 }
 
 module.exports = {
-    getPrebootOptions: stringifyWithFunctions,
+    stringifyWithFunctions: stringifyWithFunctions,
+    normalizeOptions: normalizeOptions,
     getClientCodeStream: getClientCodeStream,
     getClientCode: getClientCode
 };
