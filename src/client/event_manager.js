@@ -80,7 +80,6 @@ function getEventHandler(document, strategy, node, eventName) {
         if (!strategy.doNotReplay) {
             state.events.push({
                 node:       node,
-                value:      strategy.trackValue ? node.value : null,
                 event:      event,
                 name:       eventName,
                 time:       (new Date()).getTime()

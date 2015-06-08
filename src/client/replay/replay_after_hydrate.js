@@ -28,11 +28,6 @@ function replayEvents(events, strategy, opts) {
         }
         else {
             node.dispatchEvent(event);
-
-            // this is mostly so we can transfer over the value of textboxes
-            if (eventData.value) {
-                node.value = eventData.value;
-            }
         }
     }
 

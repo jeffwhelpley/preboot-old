@@ -23,22 +23,7 @@
  * included in the final client side JS generated.
  *
  * @param document
- * @param opts An object that contain any of the following values:
- *              listen - An array of objects that contain:
- *                          name - the name of the strategy (default attributes)
- *                          config - values passed into the strategy
- *                          getNodeEvents - a custom strategy implementation (params document and config)
- *              replay - An array of objects that contain:
- *                          name - the name of the strategy (default rerender)
- *                          config - values passed into the strategy
- *                          getNodeEvents - a custom strategy implementation (params document and config)
- *              focus - Boolean value if true, will keep track of focus on the page (true by default)
- *              buffer - Boolean value if true will switch buffers (see switch_buffer for details); default false
- *              keypress - Boolean value if true will capture all keypress events in all input[type=text] and textarea elements
- *              serverRoot - selector to get the server root node
- *              clientRoot - selector to get the client root node
- *              completeEvent - Name of event that will be raised on the document
- *                       when the client application bootstrap has completed
+ * @param opts See README for details
  */
 var eventManager = require('./event_manager');
 var focusManager = require('./focus/focus_manager');

@@ -29,13 +29,12 @@ function replayEvents(events, strategy, opts) {
         serverNode = eventData.node;
         clientNode = domSelector.findClientNode(serverNode, opts);
 
-        clientNode ?
-            clientNode.dispatchEvent(event) :
+        if (clientNode) {
+            clientNode.dispatchEvent(event);
+            clientNode.value = serverNode.value;  // need to explicitly set value since keypress events won't transfer
+        }
+        else {
             remainingEvents.push(eventData);
-
-        // this is mostly so we can transfer over the value of textboxes
-        if (eventData.value) {
-            clientNode.value = eventData.value;
         }
     }
 

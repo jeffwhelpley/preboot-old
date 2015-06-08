@@ -78,13 +78,12 @@ function replayEvents(events, strategy, opts) {
         serverNode = eventData.node;
         clientNode = domSelector.findClientNode(serverNode, opts);
 
-        clientNode ?
-            clientNode.dispatchEvent(event) :
+        if (clientNode) {
+            clientNode.dispatchEvent(event);
+            clientNode.value = serverNode.value;  // need to explicitly set value since keypress events won't transfer
+        }
+        else {
             remainingEvents.push(eventData);
-
-        // this is mostly so we can transfer over the value of textboxes
-        if (eventData.value) {
-            clientNode.value = eventData.value;
         }
     }
 
@@ -226,7 +225,6 @@ function getEventHandler(document, strategy, node, eventName) {
         if (!strategy.doNotReplay) {
             state.events.push({
                 node:       node,
-                value:      strategy.trackValue ? node.value : null,
                 event:      event,
                 name:       eventName,
                 time:       (new Date()).getTime()
@@ -299,10 +297,10 @@ function replayEvents(opts) {
 
     //TODO: figure out better solution for remaining events
     // if some events are remaining, log to the console
-    if (state.events && state.events.length) {
-        console.log('Not all events replayed: ');
-        console.log(state.events);
-    }
+    //if (state.events && state.events.length) {
+    //    console.log('Not all events replayed: ');
+    //    console.log(state.events);
+    //}
 }
 
 /**
@@ -674,5 +672,5 @@ module.exports = {
 },{"./buffer/buffer_manager":1,"./event_manager":2,"./focus/focus_manager":3}]},{},[5])(5)
 });
 
-preboot.start({"focus":true,"buffer":true,"keyPress":true,"buttonPress":true,"pauseOnTyping":true,"replay":[{"name":"rerender"}],"serverRoot":"div.server","clientRoot":"div.client","completeEvent":"BootstrapComplete","pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","listen":[{"name":"selectors","trackValue":true,"eventsBySelector":{"input[type=\"text\"]":["keypress","keyup","keydown"],"textarea":["keypress","keyup","keydown"]}},{"name":"selectors","overlay":true,"eventsBySelector":{"input[type=\"submit\"]":["click"],"button":["click"]}},{"name":"selectors","eventsBySelector":{"input[type=\"text\"]":["focus"],"textarea":["focus"]},"doNotReplay":true,"dispatchEvent":"PrebootPause"},{"name":"selectors","eventsBySelector":{"input[type=\"text\"]":["blur"],"textarea":["blur"]},"doNotReplay":true,"dispatchEvent":"PrebootResume"}]});
+preboot.start({"focus":true,"buffer":true,"keyPress":true,"buttonPress":true,"replay":[{"name":"rerender"}],"serverRoot":"div.server","clientRoot":"div.client","completeEvent":"BootstrapComplete","pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","listen":[{"name":"selectors","eventsBySelector":{"input[type=\"text\"]":["keypress","keyup","keydown"],"textarea":["keypress","keyup","keydown"]}},{"name":"selectors","overlay":true,"eventsBySelector":{"input[type=\"submit\"]":["click"],"button":["click"]}}]});
 

@@ -63,17 +63,28 @@ function normalizeOptions(opts) {
 
     // loop through strategies and convert strings to objects
     opts.listen = opts.listen.map(function (val) {
-        return _.isString(val) ? { name: val } : val;
+        var strategy = _.isString(val) ? { name: val } : val;
+
+        if ((!strategy.name || !listenStrategies[strategy.name]) && !strategy.getNodeEvents) {
+            throw new Error('Every listen strategy must either have a valid name or implement getNodeEvents()');
+        }
+
+        return strategy;
     });
     opts.replay = opts.replay.map(function (val) {
-        return _.isString(val) ? { name: val } : val;
+        var strategy = _.isString(val) ? { name: val } : val;
+
+        if ((!strategy.name || !replayStrategies[strategy.name]) && !strategy.replayEvents) {
+            throw new Error('Every listen strategy must either have a valid name or implement getNodeEvents()');
+        }
+
+        return strategy;
     });
 
     // if keypress, add strategy for capturing all keypress events
     if (opts.keyPress) {
         opts.listen.push({
             name: 'selectors',
-            trackValue: true,
             eventsBySelector: {
                 'input[type="text"]':   ['keypress', 'keyup', 'keydown'],
                 'textarea':             ['keypress', 'keyup', 'keydown']
@@ -85,6 +96,7 @@ function normalizeOptions(opts) {
         opts.listen.push({
             name: 'selectors',
             overlay: true,
+            preventDefault: true,
             eventsBySelector: {
                 'input[type="submit"]': ['click'],
                 'button':               ['click']
@@ -122,7 +134,7 @@ function normalizeOptions(opts) {
  * will only include the code in the final bundle that is actually
  * being referenced.
  *
- * @param opts
+ * @param opts See README for details
  * @returns {*}
  */
 function getClientCodeStream(opts) {
@@ -182,7 +194,7 @@ function getClientCodeStream(opts) {
 
 /**
  * Get client code as a string
- * @param opts
+ * @param opts See README for details
  * @param done
  * @return Promise
  */
