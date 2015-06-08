@@ -73,6 +73,7 @@ function normalizeOptions(opts) {
     if (opts.keyPress) {
         opts.listen.push({
             name: 'selectors',
+            trackValue: true,
             eventsBySelector: {
                 'input[type="text"]':   ['keypress', 'keyup', 'keydown'],
                 'textarea':             ['keypress', 'keyup', 'keydown']

@@ -4,11 +4,10 @@
  *
  * This is so we can play with the preboot code with a webserver
  */
-var _           = require('lodash');
 var nodemon     = require('nodemon');
 var livereload  = require('gulp-livereload');
 
-module.exports = function (gulp, opts) {
+module.exports = function (gulp) {
     //var shouldLiveReload = opts.livereload && opts.livereload === 'true';
 
     return function () {
@@ -28,6 +27,6 @@ module.exports = function (gulp, opts) {
             nodemon.restart();
         });
 
-        gulp.watch('src/**/*.js', ['build']);
+        gulp.watch(['src/**/*.js', 'build/*.js'], ['build']);
     };
 };

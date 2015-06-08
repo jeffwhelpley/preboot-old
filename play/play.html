@@ -13,9 +13,9 @@
         <button
                 style="height: 50px; width: 50%; font-size: 24px text-align: center; margin: 20px 25%"
                 preboot-events="click"
-            >Client View</button>
+            >Server View</button>
     </div>
-    <div style="display:none" class="client">
+    <div class="client">
         <input
                 style="height: 50px; width: 50%; font-size: 24px; padding: 20px; margin: 20px 25%"
                 type="text"
@@ -23,7 +23,8 @@
         <button
                 style="height: 50px; width: 50%; font-size: 24px text-align: center; margin: 20px 25%"
                 preboot-events="click"
-                >Server View</button>
+                onclick="clientClick()"
+                >Client View</button>
     </div>
 
     <button
@@ -38,11 +39,20 @@
         }
 
         setTimeout(function () {
-            console.log('dispatching bootstrap complete');
             var evt = new Event('BootstrapComplete');
             window.document.dispatchEvent(evt);
-            console.log('bootstrap complete dispatched');
-        }, 5000);
+        }, 4000);
+
+        function clientClick() {
+            console.log('client clicked');
+        }
+
+        var clientButton = document.querySelector('div.client > input');
+        clientButton.addEventListener('keypress', function (event) {
+            console.log('client key pressed: ' + event.which);
+            console.log(event);
+        });
+
     </script>
 </body>
 </html>

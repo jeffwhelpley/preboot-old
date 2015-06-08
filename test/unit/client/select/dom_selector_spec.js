@@ -73,7 +73,8 @@ describe('UNIT ' + name, function () {
             var actual = domSelector.findClientNode(serverNode, opts);
             actual.should.equal(clientNode);
 
-            var nodeInCache = domSelector.nodeCache['DIV_s2_s4'];
+            /* jshint camelcase: false */
+            var nodeInCache = domSelector.nodeCache.DIV_s2_s4;
             taste.should.exist(nodeInCache, 'No item found in cache');
             nodeInCache.length.should.be.greaterThan(0);
             nodeInCache[0].clientNode.should.equal(clientNode);
@@ -82,7 +83,9 @@ describe('UNIT ' + name, function () {
 
         it('should get client node from cache', function () {
             var expected = { blah: 'true' };
-            domSelector.nodeCache['DIV_s2_s4'] = [{
+
+            /* jshint camelcase: false */
+            domSelector.nodeCache.DIV_s2_s4 = [{
                 clientNode: expected,
                 serverNode: serverNode
             }];

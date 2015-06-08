@@ -23,20 +23,16 @@ function replayEvents(events, strategy, opts) {
 
         // if we should check to see if the node exists in the DOM before dispatching
         // NOTE: this can be expensive so this option is false by default
-        if (strategy.checkIfExists) {
-
-            // if exists, dispatch event, else add to list of remaining events
-            if (opts.document.body.contains(node)) {
-                node.dispatchEvent(event);
-            }
-            else {
-                remainingEvents.push(eventData);
-            }
+        if (strategy.checkIfExists && !opts.document.body.contains(node)) {
+            remainingEvents.push(eventData);
         }
-
-        // else we don't care if exists, so just dispatch the event
         else {
             node.dispatchEvent(event);
+
+            // this is mostly so we can transfer over the value of textboxes
+            if (eventData.value) {
+                node.value = eventData.value;
+            }
         }
     }
 

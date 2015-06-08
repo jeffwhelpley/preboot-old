@@ -123,7 +123,12 @@ function getResumeCompleteHandler(opts) {
         state.canComplete = true;
 
         if (state.completeCalled) {
-            getBootstrapCompleteHandler(opts)();
+
+            // using setTimeout to fix weird bug where err thrown on
+            // serverRoot.remove() in buffer switch
+            setTimeout(function () {
+                getBootstrapCompleteHandler(opts)();
+            }, 10);
         }
     };
 }

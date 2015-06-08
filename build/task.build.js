@@ -4,7 +4,6 @@
  *
  * Build the client side preboot code and put it in the dist folder
  */
-var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
 var clientCodeGenerator = require('../src/server/client_code_generator');
 
@@ -14,7 +13,7 @@ module.exports = function (gulp, opts) {
             buffer:         true,
             keyPress:       true,
             buttonPress:    true,
-            pauseOnTyping:  true,
+            //pauseOnTyping:  true,
             replay:         'rerender',
             serverRoot:     'div.server',
             clientRoot:     'div.client',
