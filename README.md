@@ -3,6 +3,16 @@
 This library allows you to handle events in a browser as soon as a page loads so that you can
 either immediately respond to those events or record the events and play them back later.
 
+* [Use Cases](#use-cases)
+* [Installation](#installation)
+* [Play](#play)
+* [Options](#options)
+* [Customized Build](#customized-build)
+* [Listen Strategies](#listen-strategies)
+* [Replay Strategies](#replay-strategies)
+* [Buffering](#buffering)
+* [ToDos](#todos)
+
 ## Use Cases
 
 The problem this library solves has to do with the fact that it typically takes several seconds
@@ -18,7 +28,8 @@ preboot into the HEAD section of your server rendered view you can do any of the
 
 1. Respond to events - For example, when user clicks button, show spinner
 1. Maintain focus - Even if the client web app blows away the server view and re-renders the page, you can maintain focus
-1. Record events and play them back later - Keyboard events, button clicks or anything else can essentially be deferred until the client is ready to handle them
+1. Record events and play them back later - Keyboard events, button clicks or anything else 
+can essentially be deferred until the client is ready to handle them
 
 ## Installation
 
@@ -187,7 +198,7 @@ If the completeEvent was raised, then it will call the complete function which r
 * `uglify` - You can always uglify the output of the client code stream yourself, but if you set this
 option to true preboot will do it for you.
 
-## Customized build
+## Customized Build
 
 The generated client-side code for preboot is customized based on the options you select. So, in other words,
 if you only use the attributes listen strategy, the code for the other listen strategies will not
