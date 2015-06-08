@@ -198,7 +198,7 @@ be feasible to inline in the HEAD of your server rendered view.
 
 The goal of the listen strategies is to inspect the server view and find events on particular nodes that need
 to be tracked. It is trival to implement your own custom strategy by passing in a function into the
-getNodeEvents option (see options above), but here are the built-in strategies that you can choose from:
+getNodeEvents option (see [options](#options)), but here are the built-in strategies that you can choose from:
  
 1. **attributes** - This strategy will inspect the server view for any element that contains a particular attribute
 name (default is 'preboot-events'). So if there is a `<input preboot-events="keypress,focus">` then all keypress
@@ -207,7 +207,7 @@ and focus events on that input element would be tracked.
 (i.e. anything with ()="" or on-*=""). This is useful for play, but likely shouldn't be used for real since
 it can be slow (i.e. walking the DOM), doesn't allow configuration for different types of events and it
 doesn't track Angular events defined within a component definition (i.e. not in the template).
-1. **selectors** - This strategy requires the use of the eventsBySelector option (see options section above).
+1. **selectors** - This strategy requires the use of the eventsBySelector option (see [options section](#options) above).
 You basically specify a selector and the events you want for those nodes. For example:
 `{ 'input[type="text"],button': ['keypress', 'keydown', 'keyup'] }`
 
@@ -241,7 +241,7 @@ The return object for all built-in strategies (as well as any custom getNodeEven
 
 The goal of the replay strategies is to take a list of nodeEvents and replay them in the client rendered
 view. It is trival to implement your own custom strategy by passing in a function into the
-replayEvents option (see options above), but here are the built-in strategies that you can choose from:
+replayEvents option (see [options](#options)), but here are the built-in strategies that you can choose from:
  
 1. **hydrate** - This assumes that the server view and the client view are the same. In other words,
 the DOM elements in memory for the server view are still there with the client view. So, when replaying
