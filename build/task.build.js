@@ -4,7 +4,7 @@
  *
  * Build the client side preboot code and put it in the dist folder
  */
-var rename = require('gulp-rename');
+
 var clientCodeGenerator = require('../src/server/client_code_generator');
 
 module.exports = function (gulp, opts) {
@@ -22,7 +22,6 @@ module.exports = function (gulp, opts) {
 
     return function () {
         return clientCodeGenerator.getClientCodeStream(prebootOptions)
-            .pipe(rename('preboot.js'))
             .pipe(gulp.dest('./dist'));
     };
 };

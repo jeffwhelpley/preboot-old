@@ -9,6 +9,7 @@ var Q           = require('q');
 var _           = require('lodash');
 var uglify      = require('gulp-uglify');
 var insert      = require('gulp-insert');
+var rename      = require('gulp-rename');
 var source      = require('vinyl-source-stream');
 var buffer      = require('vinyl-buffer');
 var eventStream = require('event-stream');
@@ -186,7 +187,8 @@ function getClientCodeStream(opts) {
     var outputStream = b.bundle()
         .pipe(source('src/client/preboot_client.js'))
         .pipe(buffer())
-        .pipe(insert.append('\n\npreboot.start(' + stringifyWithFunctions(opts) + ');\n\n'));
+        .pipe(insert.append('\n\npreboot.start(' + stringifyWithFunctions(opts) + ');\n\n'))
+        .pipe(rename('preboot.js'));
 
     // uglify if the option is passed in
     return opts.uglify ? outputStream.pipe(uglify()) : outputStream;
