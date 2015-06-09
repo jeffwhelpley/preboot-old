@@ -144,7 +144,7 @@ function getClientCodeStream(opts) {
 
     // client code entry file
     var b = browserify({
-        entries: ['src/client/preboot_client.js'],
+        entries: [__dirname + '/../client/preboot_client.js'],
         standalone: 'preboot'
     });
 
@@ -155,7 +155,7 @@ function getClientCodeStream(opts) {
         name = strategy.name;
 
         if (listenStrategies[name] && !listenStrategiesRequired[name]) {
-            b.require('./src/client/listen/listen_by_' + name + '.js',
+            b.require(__dirname + '/../client/listen/listen_by_' + name + '.js',
                 { expose: './listen/listen_by_' + name + '.js' });
             listenStrategiesRequired[name] = true;
         }
@@ -167,7 +167,7 @@ function getClientCodeStream(opts) {
         name = strategy.name;
 
         if (replayStrategies[name] && !replayStrategiesRequired[name]) {
-            b.require('./src/client/replay/replay_after_' + name + '.js',
+            b.require(__dirname + '/../client/replay/replay_after_' + name + '.js',
                 { expose: './replay/replay_after_' + name + '.js' });
             replayStrategiesRequired[name] = true;
         }

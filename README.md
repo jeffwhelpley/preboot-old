@@ -1,7 +1,7 @@
 # preboot
 
-This library allows you to handle events in a browser as soon as a page loads so that you can
-either immediately respond to those events or record the events and play them back later.
+This is a server-side library that allows you to generate a small piece of client-side code 
+which can be used to interact with browser events as soon as the window onload occurs.  
 
 * [Use Cases](#use-cases)
 * [Installation](#installation)
@@ -14,6 +14,9 @@ either immediately respond to those events or record the events and play them ba
 * [ToDos](#todos)
 
 ## Use Cases
+
+
+TODO: work on this section...
 
 The problem this library solves has to do with the fact that it typically takes several seconds
 for a modern client-side JavaScript web app to download and fully bootstrap. This means that

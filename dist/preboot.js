@@ -93,7 +93,7 @@ function replayEvents(events, strategy, opts) {
 module.exports = {
     replayEvents: replayEvents
 };
-},{"../select/dom_selector":4}],1:[function(require,module,exports){
+},{"../select/dom_selector":5}],1:[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
  * Date: 6/2/15
@@ -402,119 +402,7 @@ module.exports = {
     stopTracking: stopTracking,
     setFocus: setFocus
 };
-},{"../select/dom_selector":4}],4:[function(require,module,exports){
-/**
- * Author: Jeff Whelpley
- * Date: 6/4/15
- *
- * This is used when there is a rerender and we need to find the
- * client rendered node that matches a server rendered node. It
- * is used by replay_after_rerender and focus_manager
- */
-var nodeCache = {};
-
-/**
- * Get a unique key for a node in the DOM
- * @param node
- * @param rootNode - Need to know how far up we go
- */
-function getNodeKey(node, rootNode) {
-    var ancestors = [];
-    var temp = node;
-    while (temp && temp !== rootNode) {
-        ancestors.push(temp);
-        temp = temp.parentNode;
-    }
-
-    // push the rootNode on the ancestors
-    if (temp) {
-        ancestors.push(temp);
-    }
-
-    // now go backwards starting from the root
-    var key = node.nodeName;
-    var len = ancestors.length;
-    var i, j;
-
-    for (i = (len - 1); i >= 0; i--) {
-        temp = ancestors[i];
-
-        //key += '_d' + (len - i);
-
-        if (temp.childNodes && i > 0) {
-            for (j = 0; j < temp.childNodes.length; j++) {
-                if (temp.childNodes[j] === ancestors[i - 1]) {
-                    key += '_s' + (j + 1);
-                    break;
-                }
-            }
-        }
-    }
-
-    return key;
-}
-
-/**
- * Given a node from the server rendered view, find the equivalent
- * node in the client rendered view.
- *
- * @param serverNode
- * @param opts
- */
-function findClientNode(serverNode, opts) {
-
-    // if nothing passed in, then no client node
-    if (!serverNode) { return null; }
-
-    // we use the string of the node to compare to the client node & as key in cache
-    var serverNodeKey = getNodeKey(serverNode, opts.serverRoot);
-
-    // first check to see if we already mapped this node
-    var nodes = nodeCache[serverNodeKey] || [];
-    for (var i = 0; i < nodes.length; i++) {
-        if (nodes[i].serverNode === serverNode) {
-            return nodes[i].clientNode;
-        }
-    }
-
-    //TODO: improve this algorithm in the future
-    var selector = serverNode.tagName;
-    if (serverNode.id) {
-        selector += '#' + serverNode.id;
-    }
-    else if (serverNode.className) {
-        selector += serverNode.className.replace(/ /g, '.');
-    }
-
-    var root = opts.clientRoot || opts.document;
-    var clientNodes = root.querySelectorAll(selector);
-    for (i = 0; clientNodes && i < clientNodes.length; i++) {
-        var clientNode = clientNodes[i];
-
-        //TODO: this assumes a perfect match which isn't necessarily true
-        if (getNodeKey(clientNode, opts.clientRoot) === serverNodeKey) {
-
-            // add the client/server node pair to the cache
-            nodeCache[serverNodeKey] = nodeCache[serverNodeKey] || [];
-            nodeCache[serverNodeKey].push({
-                clientNode: clientNode,
-                serverNode: serverNode
-            });
-
-            return clientNode;
-        }
-    }
-
-    // if we get here it means we couldn't find the client node
-    return null;
-}
-
-module.exports = {
-    nodeCache: nodeCache,
-    getNodeKey: getNodeKey,
-    findClientNode: findClientNode
-};
-},{}],5:[function(require,module,exports){
+},{"../select/dom_selector":5}],4:[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
  * Date: 6/2/15
@@ -540,22 +428,7 @@ module.exports = {
  * included in the final client side JS generated.
  *
  * @param document
- * @param opts An object that contain any of the following values:
- *              listen - An array of objects that contain:
- *                          name - the name of the strategy (default attributes)
- *                          config - values passed into the strategy
- *                          getNodeEvents - a custom strategy implementation (params document and config)
- *              replay - An array of objects that contain:
- *                          name - the name of the strategy (default rerender)
- *                          config - values passed into the strategy
- *                          getNodeEvents - a custom strategy implementation (params document and config)
- *              focus - Boolean value if true, will keep track of focus on the page (true by default)
- *              buffer - Boolean value if true will switch buffers (see switch_buffer for details); default false
- *              keypress - Boolean value if true will capture all keypress events in all input[type=text] and textarea elements
- *              serverRoot - selector to get the server root node
- *              clientRoot - selector to get the client root node
- *              completeEvent - Name of event that will be raised on the document
- *                       when the client application bootstrap has completed
+ * @param opts See README for details
  */
 var eventManager = require('./event_manager');
 var focusManager = require('./focus/focus_manager');
@@ -669,8 +542,120 @@ module.exports = {
     start: start
 };
 
-},{"./buffer/buffer_manager":1,"./event_manager":2,"./focus/focus_manager":3}]},{},[5])(5)
+},{"./buffer/buffer_manager":1,"./event_manager":2,"./focus/focus_manager":3}],5:[function(require,module,exports){
+/**
+ * Author: Jeff Whelpley
+ * Date: 6/4/15
+ *
+ * This is used when there is a rerender and we need to find the
+ * client rendered node that matches a server rendered node. It
+ * is used by replay_after_rerender and focus_manager
+ */
+var nodeCache = {};
+
+/**
+ * Get a unique key for a node in the DOM
+ * @param node
+ * @param rootNode - Need to know how far up we go
+ */
+function getNodeKey(node, rootNode) {
+    var ancestors = [];
+    var temp = node;
+    while (temp && temp !== rootNode) {
+        ancestors.push(temp);
+        temp = temp.parentNode;
+    }
+
+    // push the rootNode on the ancestors
+    if (temp) {
+        ancestors.push(temp);
+    }
+
+    // now go backwards starting from the root
+    var key = node.nodeName;
+    var len = ancestors.length;
+    var i, j;
+
+    for (i = (len - 1); i >= 0; i--) {
+        temp = ancestors[i];
+
+        //key += '_d' + (len - i);
+
+        if (temp.childNodes && i > 0) {
+            for (j = 0; j < temp.childNodes.length; j++) {
+                if (temp.childNodes[j] === ancestors[i - 1]) {
+                    key += '_s' + (j + 1);
+                    break;
+                }
+            }
+        }
+    }
+
+    return key;
+}
+
+/**
+ * Given a node from the server rendered view, find the equivalent
+ * node in the client rendered view.
+ *
+ * @param serverNode
+ * @param opts
+ */
+function findClientNode(serverNode, opts) {
+
+    // if nothing passed in, then no client node
+    if (!serverNode) { return null; }
+
+    // we use the string of the node to compare to the client node & as key in cache
+    var serverNodeKey = getNodeKey(serverNode, opts.serverRoot);
+
+    // first check to see if we already mapped this node
+    var nodes = nodeCache[serverNodeKey] || [];
+    for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i].serverNode === serverNode) {
+            return nodes[i].clientNode;
+        }
+    }
+
+    //TODO: improve this algorithm in the future
+    var selector = serverNode.tagName;
+    if (serverNode.id) {
+        selector += '#' + serverNode.id;
+    }
+    else if (serverNode.className) {
+        selector += serverNode.className.replace(/ /g, '.');
+    }
+
+    var root = opts.clientRoot || opts.document;
+    var clientNodes = root.querySelectorAll(selector);
+    for (i = 0; clientNodes && i < clientNodes.length; i++) {
+        var clientNode = clientNodes[i];
+
+        //TODO: this assumes a perfect match which isn't necessarily true
+        if (getNodeKey(clientNode, opts.clientRoot) === serverNodeKey) {
+
+            // add the client/server node pair to the cache
+            nodeCache[serverNodeKey] = nodeCache[serverNodeKey] || [];
+            nodeCache[serverNodeKey].push({
+                clientNode: clientNode,
+                serverNode: serverNode
+            });
+
+            return clientNode;
+        }
+    }
+
+    // if we get here it means we couldn't find the client node
+    return null;
+}
+
+module.exports = {
+    nodeCache: nodeCache,
+    getNodeKey: getNodeKey,
+    findClientNode: findClientNode
+};
+},{}]},{},[4])(4)
 });
 
-preboot.start({"focus":true,"buffer":true,"keyPress":true,"buttonPress":true,"replay":[{"name":"rerender"}],"serverRoot":"div.server","clientRoot":"div.client","completeEvent":"BootstrapComplete","pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","listen":[{"name":"selectors","eventsBySelector":{"input[type=\"text\"]":["keypress","keyup","keydown"],"textarea":["keypress","keyup","keydown"]}},{"name":"selectors","overlay":true,"eventsBySelector":{"input[type=\"submit\"]":["click"],"button":["click"]}}]});
+preboot.start({"focus":true,"buffer":true,"keyPress":true,"buttonPress":true,"replay":[{"name":"rerender"}],"serverRoot":"div.server","clientRoot":"div.client","completeEvent":"BootstrapComplete","pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","listen":[{"name":"selectors","eventsBySelector":{"input[type=\"text\"]":["keypress","keyup","keydown"],"textarea":["keypress","keyup","keydown"]}},{"name":"selectors","overlay":true,"preventDefault":true,"eventsBySelector":{"input[type=\"submit\"]":["click"],"button":["click"]}}]});
 
