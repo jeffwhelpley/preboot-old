@@ -123,7 +123,7 @@ function getResumeCompleteHandler(opts) {
  * @param opts
  */
 function start(opts) {
-    window.onload = getOnLoadHandler(opts);
+    window.addEventListener('load', getOnLoadHandler(opts));
     window.document.addEventListener(opts.pauseEvent, pauseCompletion);
     window.document.addEventListener(opts.resumeEvent, getResumeCompleteHandler(opts));
     window.document.addEventListener(opts.completeEvent, getBootstrapCompleteHandler(opts));
