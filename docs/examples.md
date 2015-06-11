@@ -57,6 +57,7 @@ app.listen(3000);
 
 ## Hapi
 
+```
 var preboot = require('preboot');
 var Hapi = require('hapi');
 var server = new Hapi.Server();
@@ -85,6 +86,7 @@ server.route(
             });
     }
 );
+```
 
 ## Gulp
 

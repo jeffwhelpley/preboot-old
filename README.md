@@ -44,8 +44,8 @@ Server-side integrations:
 
 Client-side integrations:
 
-* [Angular 1.x](docs/examples.md#angular1)
-* [Angular 2](docs/examples.md#angular2)
+* [Angular 1.x](docs/examples.md#angular-1)
+* [Angular 2](docs/examples.md#angular-2)
 * [React](docs/examples.md#react)
 * [Ember](docs/examples.md#ember)
 
