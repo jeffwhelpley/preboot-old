@@ -210,11 +210,13 @@ function findClientNode(serverNode) {
 
     //TODO: improve this algorithm in the future so uses fuzzy logic (i.e. not necessarily perfect match)
     var selector = serverNode.tagName;
+    var className = (serverNode.className || '').replace('ng-binding', '').trim();
+
     if (serverNode.id) {
         selector += '#' + serverNode.id;
     }
-    else if (serverNode.className) {
-        selector += serverNode.className.replace(/ /g, '.');
+    else if (className) {
+        selector += '.' + className.replace(/ /g, '.');
     }
 
     var clientNodes = getClientNodes(selector);
