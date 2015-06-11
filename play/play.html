@@ -16,14 +16,14 @@
             >Server View</button>
     </app>
 
-    <div class="client" style="display:none">
+    <div class="client" style="display: none">
         <input
                 style="height: 50px; width: 50%; font-size: 24px; padding: 20px; margin: 20px 25%"
                 type="text"
                 name="one">
         <button
                 style="height: 50px; width: 50%; font-size: 24px text-align: center; margin: 20px 25%"
-                onlick="clientClick()"
+                onclick="clientClick()"
                 >Client View</button>
     </div>
 
@@ -37,8 +37,10 @@
         // fire bootstrap complete manually
         function fireBootstrapComplete() {
             console.log('fire bootstrap complete');
-            var evt = new Event('BootstrapComplete');
-            window.document.dispatchEvent(evt);
+//            var evt = new Event('BootstrapComplete');
+//            window.document.dispatchEvent(evt);
+
+            preboot.done();
         }
 
         // this is our "client app"
@@ -53,7 +55,7 @@
             }
 
             setTimeout(function () {
-                window.document.dispatchEvent(new Event('BootstrapComplete'));
+                fireBootstrapComplete();
             }, 1000);
         }, 3000);
 

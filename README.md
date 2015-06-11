@@ -27,11 +27,11 @@ var prebootOptions = {};  // see options section below
 var clientCode = preboot(prebootOptions);
 ```
 
-Finally, once your client-side web app is "alive" it must send a signal
-to preboot so preboot can start replaying events:
+Finally, once your client-side web app is "alive" it has to tell preboot that it is OK
+to replay events.
 
 ```
-window.document.dispatchEvent(new Event('BootstrapComplete'));
+preboot.done();
 ```
 
 ## Examples

@@ -676,7 +676,8 @@ var bufferManager   = require('./buffer/buffer_manager');
 var state = {
     canComplete: true,      // set to false if preboot paused through an event
     completeCalled: false,  // set to true once the completion event has been raised
-    freeze: null            // only used if freeze option is passed in
+    freeze: null,           // only used if freeze option is passed in
+    opts: null
 };
 
 /**
@@ -766,6 +767,7 @@ function getResumeCompleteHandler(opts) {
  * @param opts
  */
 function start(opts) {
+    state.opts = opts;
 
     // freeze strategy is used at this top level, so need to get ref
     state.freeze = (typeof opts.freeze === 'string') ?
@@ -780,15 +782,23 @@ function start(opts) {
     dom.on(opts.completeEvent, getBootstrapCompleteHandler(opts));
 }
 
+/**
+ * Client app calls this when bootstrapping is complete
+ */
+function done() {
+    getBootstrapCompleteHandler(state.opts)();
+}
+
 // only expose start
 module.exports = {
     eventManager: eventManager,
     bufferManager: bufferManager,
-    start: start
+    start: start,
+    done: done
 };
 
 },{"./buffer/buffer_manager":1,"./dom":2,"./event_manager":3}]},{},[4])(4)
 });
 
-preboot.start({"appRoot":"app","replay":[{"name":"rerender"}],"freeze":"spinner","focus":true,"buffer":true,"keyPress":true,"buttonPress":true,"pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","completeEvent":"BootstrapComplete","freezeEvent":"PrebootFreeze","listen":[{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["keypress","keyup","keydown"]}},{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["focusin","focusout"]},"trackFocus":true,"doNotReplay":true},{"name":"selectors","eventsBySelector":{"input[type=\"submit\"],button":["click"]},"dispatchEvent":"PrebootFreeze"}],"freezeStyles":{"overlay":{"className":"preboot-overlay","style":{"position":"absolute","display":"none","zIndex":"9999999","top":"0","left":"0","width":"100%","height":"100%"}},"spinner":{"className":"preboot-spinner","style":{"position":"absolute","display":"none","zIndex":"99999999"}}}});
+preboot.start({"appRoot":"app","replay":[{"name":"rerender"}],"freeze":"spinner","focus":true,"buffer":true,"keyPress":true,"buttonPress":true,"pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","completeEvent":"BootstrapComplete","freezeEvent":"PrebootFreeze","listen":[{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["keypress","keyup","keydown"]}},{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["focusin","focusout"]},"trackFocus":true,"doNotReplay":true},{"name":"selectors","preventDefault":true,"eventsBySelector":{"input[type=\"submit\"],button":["click"]},"dispatchEvent":"PrebootFreeze"}],"freezeStyles":{"overlay":{"className":"preboot-overlay","style":{"position":"absolute","display":"none","zIndex":"9999999","top":"0","left":"0","width":"100%","height":"100%"}},"spinner":{"className":"preboot-spinner","style":{"position":"absolute","display":"none","zIndex":"99999999"}}}});
 
