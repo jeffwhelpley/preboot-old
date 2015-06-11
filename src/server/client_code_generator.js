@@ -49,7 +49,6 @@ function normalizeOptions(opts) {
     opts = opts || {};
     opts.pauseEvent = opts.pauseEvent || 'PrebootPause';
     opts.resumeEvent = opts.resumeEvent || 'PrebootResume';
-    opts.completeEvent = opts.completeEvent || 'BootstrapComplete';
     opts.freezeEvent = opts.freezeEvent || 'PrebootFreeze';
 
     // set default strategies

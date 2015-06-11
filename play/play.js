@@ -42,7 +42,6 @@ server.route({
         //    keypress:       true,
         //    serverRoot:     'div.server',
         //    clientRoot:     'div.client',
-        //    completeEvent:  'BootstrapComplete'
         //};
 
         // generate the client code (NOTE: in prod would just generate this ahead of time)

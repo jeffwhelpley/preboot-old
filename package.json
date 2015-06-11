@@ -1,6 +1,6 @@
 {
   "name": "preboot",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Record and play back client side events",
   "main": "src/server/preboot_server.js",
   "scripts": {

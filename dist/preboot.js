@@ -711,26 +711,21 @@ function getOnLoadHandler(opts) {
 
 /**
  * Get a function to run once bootstrap has completed
- * @param opts
- * @returns {Function}
  */
-function getBootstrapCompleteHandler(opts) {
-    return function onComplete() {
+function done() {
+    var opts = state.opts;
 
-        //TODO: in future can have client app pass data to preboot through BootstrapComplete event
+    // track that complete has been called
+    state.completeCalled = true;
 
-        // track that complete has been called
-        state.completeCalled = true;
+    // if we can't complete (i.e. preboot paused), just return right away
+    if (!state.canComplete) { return; }
 
-        // if we can't complete (i.e. preboot paused), just return right away
-        if (!state.canComplete) { return; }
-
-        // else we can complete, so get started with events
-        eventManager.replayEvents(opts);                        // replay events on client DOM
-        if (opts.buffer) { bufferManager.switchBuffer(opts); }  // switch from server to client buffer
-        if (opts.freeze) { state.freeze.cleanup(); }            // cleanup freeze divs like overlay
-        eventManager.cleanup(opts);                             // cleanup event listeners
-    };
+    // else we can complete, so get started with events
+    eventManager.replayEvents(opts);                        // replay events on client DOM
+    if (opts.buffer) { bufferManager.switchBuffer(opts); }  // switch from server to client buffer
+    if (opts.freeze) { state.freeze.cleanup(); }            // cleanup freeze divs like overlay
+    eventManager.cleanup(opts);                             // cleanup event listeners
 }
 
 /**
@@ -755,9 +750,7 @@ function getResumeCompleteHandler(opts) {
 
             // using setTimeout to fix weird bug where err thrown on
             // serverRoot.remove() in buffer switch
-            setTimeout(function () {
-                getBootstrapCompleteHandler(opts)();
-            }, 10);
+            setTimeout(done, 10);
         }
     };
 }
@@ -779,14 +772,6 @@ function start(opts) {
     dom.onLoad(getOnLoadHandler(opts));
     dom.on(opts.pauseEvent, pauseCompletion);
     dom.on(opts.resumeEvent, getResumeCompleteHandler(opts));
-    dom.on(opts.completeEvent, getBootstrapCompleteHandler(opts));
-}
-
-/**
- * Client app calls this when bootstrapping is complete
- */
-function done() {
-    getBootstrapCompleteHandler(state.opts)();
 }
 
 // only expose start
@@ -800,5 +785,5 @@ module.exports = {
 },{"./buffer/buffer_manager":1,"./dom":2,"./event_manager":3}]},{},[4])(4)
 });
 
-preboot.start({"appRoot":"app","replay":[{"name":"rerender"}],"freeze":"spinner","focus":true,"buffer":true,"keyPress":true,"buttonPress":true,"pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","completeEvent":"BootstrapComplete","freezeEvent":"PrebootFreeze","listen":[{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["keypress","keyup","keydown"]}},{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["focusin","focusout"]},"trackFocus":true,"doNotReplay":true},{"name":"selectors","preventDefault":true,"eventsBySelector":{"input[type=\"submit\"],button":["click"]},"dispatchEvent":"PrebootFreeze"}],"freezeStyles":{"overlay":{"className":"preboot-overlay","style":{"position":"absolute","display":"none","zIndex":"9999999","top":"0","left":"0","width":"100%","height":"100%"}},"spinner":{"className":"preboot-spinner","style":{"position":"absolute","display":"none","zIndex":"99999999"}}}});
+preboot.start({"appRoot":"app","replay":[{"name":"rerender"}],"freeze":"spinner","focus":true,"buffer":true,"keyPress":true,"buttonPress":true,"pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","freezeEvent":"PrebootFreeze","listen":[{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["keypress","keyup","keydown"]}},{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["focusin","focusout"]},"trackFocus":true,"doNotReplay":true},{"name":"selectors","preventDefault":true,"eventsBySelector":{"input[type=\"submit\"],button":["click"]},"dispatchEvent":"PrebootFreeze"}],"freezeStyles":{"overlay":{"className":"preboot-overlay","style":{"position":"absolute","display":"none","zIndex":"9999999","top":"0","left":"0","width":"100%","height":"100%"}},"spinner":{"className":"preboot-spinner","style":{"position":"absolute","display":"none","zIndex":"99999999"}}}});
 

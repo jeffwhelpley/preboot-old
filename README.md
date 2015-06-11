@@ -86,10 +86,8 @@ view to the client view
 
 **4. Workflow Events**
 
-These are the names of global events that are raised or consumed by preboot:
+These are the names of global events that can affect the preboot workflow:
 
-* `completeEvent` - When this is raised, preboot will replay all 
-recorded events and do other completion tasks (default 'BootstrapComplete')
 * `pauseEvent` - When this is raised, preboot will delay the play back of recorded events (default 'PrebootPause')
 * `resumeEvent` - When this is raised, preboot will resume the playback of events (default 'PrebootResume')
 
