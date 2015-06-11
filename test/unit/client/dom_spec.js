@@ -1,12 +1,12 @@
 /**
  * Author: Jeff Whelpley
- * Date: 6/6/15
+ * Date: 6/11/15
  *
- *
+ * Server side testing for some the DOM wrapper
  */
-var name        = 'client/select/dom_selector';
-var taste       = require('taste');
-var domSelector = taste.target(name);
+var name    = 'client/dom';
+var taste   = require('taste');
+var dom     = taste.target(name);
 
 function addParent(node) {
     if (node && node.childNodes) {
@@ -17,7 +17,37 @@ function addParent(node) {
     }
 }
 
+var serverNode = { nodeName: 'DIV' };
+var serverDocument = {
+    childNodes: [{}, {}, {
+        childNodes: [{}, {
+            childNodes: [{}, {}, {}, serverNode]
+        }]
+    }]
+};
+var serverRoot = serverDocument.childNodes[2];
+var clientNode = { nodeName: 'DIV' };
+var clientDocument = {
+    childNodes: [{}, {}, {
+        childNodes: [{}, {
+            childNodes: [{}, {}, {}, clientNode]
+        }]
+    }]
+};
+var clientRoot = clientDocument.childNodes[2];
+clientRoot.querySelectorAll = function () {
+    return [clientNode];
+};
+
+addParent(serverDocument);
+addParent(clientDocument);
+
 describe('UNIT ' + name, function () {
+
+    beforeEach(function () {
+        dom.reset();
+    });
+
     describe('getNodeKey()', function () {
         it('should generate a key based of the node structure', function () {
             var node = { nodeName: 'DIV' };
@@ -33,48 +63,22 @@ describe('UNIT ' + name, function () {
             addParent(document);
 
             var expected = 'DIV_s2_s4';
-            var actual = domSelector.getNodeKey(node, rootNode);
+            var actual = strategy.getNodeKey(node, rootNode);
             actual.should.equal(expected);
         });
     });
 
     describe('findClientNode()', function () {
-        var serverNode = { nodeName: 'DIV' };
-        var serverDocument = {
-            childNodes: [{}, {}, {
-                childNodes: [{}, {
-                    childNodes: [{}, {}, {}, serverNode]
-                }]
-            }]
-        };
-        var serverRoot = serverDocument.childNodes[2];
-        var clientNode = { nodeName: 'DIV' };
-        var clientDocument = {
-            childNodes: [{}, {}, {
-                childNodes: [{}, {
-                    childNodes: [{}, {}, {}, clientNode]
-                }]
-            }]
-        };
-        var clientRoot = clientDocument.childNodes[2];
-        clientRoot.querySelectorAll = function () {
-            return [clientNode];
-        };
-        var opts = {
-            serverRoot: serverRoot,
-            clientRoot: clientRoot,
-            document: {}
-        };
-
-        addParent(serverDocument);
-        addParent(clientDocument);
-
         it('should find a client node from a server node', function () {
-            var actual = domSelector.findClientNode(serverNode, opts);
+            dom.reset();
+            dom.state.clientRoot = clientRoot;
+            dom.state.appRoot = dom.state.serverRoot = serverRoot;
+
+            var actual = strategy.findClientNode(serverNode);
             actual.should.equal(clientNode);
 
             /* jshint camelcase: false */
-            var nodeInCache = domSelector.nodeCache.DIV_s2_s4;
+            var nodeInCache = strategy.nodeCache.DIV_s2_s4;
             taste.should.exist(nodeInCache, 'No item found in cache');
             nodeInCache.length.should.be.greaterThan(0);
             nodeInCache[0].clientNode.should.equal(clientNode);
@@ -82,15 +86,19 @@ describe('UNIT ' + name, function () {
         });
 
         it('should get client node from cache', function () {
+            dom.reset();
+            dom.state.clientRoot = clientRoot;
+            dom.state.appRoot = dom.state.serverRoot = serverRoot;
+
             var expected = { blah: 'true' };
 
             /* jshint camelcase: false */
-            domSelector.nodeCache.DIV_s2_s4 = [{
+            strategy.nodeCache.DIV_s2_s4 = [{
                 clientNode: expected,
                 serverNode: serverNode
             }];
 
-            var actual = domSelector.findClientNode(serverNode, opts);
+            var actual = strategy.findClientNode(serverNode);
             actual.should.equal(expected);
         });
     });

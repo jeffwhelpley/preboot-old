@@ -18,6 +18,7 @@ var browserify  = require('browserify');
 /* jshint camelcase: false */
 var listenStrategies = { attributes: true, event_bindings: true, selectors: true };
 var replayStrategies = { hydrate: true, rerender: true };
+var freezeStrategies = { spinner: true };
 
 // map of input opts to client code
 var clientCodeCache = {};
@@ -49,6 +50,7 @@ function normalizeOptions(opts) {
     opts.pauseEvent = opts.pauseEvent || 'PrebootPause';
     opts.resumeEvent = opts.resumeEvent || 'PrebootResume';
     opts.completeEvent = opts.completeEvent || 'BootstrapComplete';
+    opts.freezeEvent = opts.freezeEvent || 'PrebootFreeze';
 
     // set default strategies
     opts.listen = opts.listen || [];
@@ -58,8 +60,15 @@ function normalizeOptions(opts) {
     if (_.isString(opts.listen)) {
         opts.listen = [{ name: opts.listen }];
     }
+    else if (!_.isArray(opts.listen)) {
+        opts.listen = [opts.listen];
+    }
+
     if (_.isString(opts.replay)) {
         opts.replay = [{ name: opts.replay }];
+    }
+    else if (!_.isArray(opts.replay)) {
+        opts.replay = [opts.replay];
     }
 
     // loop through strategies and convert strings to objects
@@ -82,26 +91,64 @@ function normalizeOptions(opts) {
         return strategy;
     });
 
+    if (opts.freeze) {
+        if (_.isString(opts.freeze) && !freezeStrategies[opts.freeze]) {
+            throw new Error('Invalid freeze option: ' + opts.freeze);
+        }
+
+        opts.freezeStyles = _.merge({
+            overlay: {
+                className:      'preboot-overlay',
+                style: {
+                    position:   'absolute',
+                    display:    'none',
+                    zIndex:     '9999999',
+                    top:        '0',
+                    left:       '0',
+                    width:      '100%',
+                    height:     '100%'
+                }
+            },
+            spinner: {
+                className:      'preboot-spinner',
+                style: {
+                    position:   'absolute',
+                    display:    'none',
+                    zIndex:     '99999999'
+                }
+            }
+        }, opts.freezeStyles);
+    }
+
     // if keypress, add strategy for capturing all keypress events
     if (opts.keyPress) {
         opts.listen.push({
             name: 'selectors',
             eventsBySelector: {
-                'input[type="text"]':   ['keypress', 'keyup', 'keydown'],
-                'textarea':             ['keypress', 'keyup', 'keydown']
+                'input[type="text"],textarea':   ['keypress', 'keyup', 'keydown']
             }
+        });
+    }
+
+    if (opts.focus) {
+        opts.listen.push({
+            name: 'selectors',
+            eventsBySelector: {
+                'input[type="text"],textarea':   ['focusin', 'focusout']
+            },
+            trackFocus: true,
+            doNotReplay: true
         });
     }
 
     if (opts.buttonPress) {
         opts.listen.push({
             name: 'selectors',
-            overlay: true,
             preventDefault: true,
             eventsBySelector: {
-                'input[type="submit"]': ['click'],
-                'button':               ['click']
-            }
+                'input[type="submit"],button': ['click']
+            },
+            dispatchEvent: opts.freezeEvent
         });
     }
 
@@ -142,6 +189,7 @@ function getClientCodeStream(opts) {
     opts = normalizeOptions(opts);
     var listenStrategiesRequired = {};
     var replayStrategiesRequired = {};
+    var freezeStrategiesRequired = {};
 
     // client code entry file
     var b = browserify({
@@ -174,9 +222,11 @@ function getClientCodeStream(opts) {
         }
     }
 
-    // remove the focus code if we are not calling it
-    if (!opts.focus) {
-        b.ignore('focus_manager.js');
+    var freeze = opts.freeze;
+    if (freeze && _.isString(freeze) && freezeStrategies[freeze] && !freezeStrategiesRequired[freeze]) {
+        b.require(__dirname + '/../client/freeze/freeze_with_' + freeze + '.js',
+            { expose: './freeze/freeze_with_' + freeze + '.js' });
+        freezeStrategiesRequired[freeze] = true;
     }
 
     // remove the buffer code if we are not calling it

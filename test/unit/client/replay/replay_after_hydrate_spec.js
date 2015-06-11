@@ -7,8 +7,14 @@
 var name        = 'client/replay/replay_after_hydrate';
 var taste       = require('taste');
 var strategy    = taste.target(name);
+var dom         = require('../../../mock_dom');
 
 describe('UNIT ' + name, function () {
+
+    beforeEach(function () {
+        dom.reset();
+    });
+
     describe('replayEvents()', function () {
         it('should do nothing and return empty array if no params', function () {
             var expected = [];
@@ -24,16 +30,17 @@ describe('UNIT ' + name, function () {
                 { event: { name: 'evt2' }, node: node2 }
             ];
             var config = {};
-            var opts = {};
 
             var expected = [];
-            var actual = strategy.replayEvents(events, config, opts);
+            var actual = strategy.replayEvents(events, config);
             actual.should.deep.equal(expected);
             node1.dispatchEvent.should.have.callCount(1);
             node2.dispatchEvent.should.have.callCount(1);
         });
 
         it('should checkIfExists then dispatch', function () {
+            dom.reset({ contains: true });
+
             var node1 = { name: 'node1', dispatchEvent: taste.spy() };
             var node2 = { name: 'node2', dispatchEvent: taste.spy() };
             var events = [
@@ -41,21 +48,12 @@ describe('UNIT ' + name, function () {
                 { event: { name: 'evt2' }, node: node2 }
             ];
             var config = { checkIfExists: true };
-            var opts = {
-                document: {
-                    body: {
-                        contains: function (node) {
-                            return node.name === 'node1';  // only node1 valid
-                        }
-                    }
-                }
-            };
 
-            var expected = [events[1]];  // node2 returned as remaining
-            var actual = strategy.replayEvents(events, config, opts);
+            var expected = [];
+            var actual = strategy.replayEvents(events, config);
             actual.should.deep.equal(expected);
             node1.dispatchEvent.should.have.callCount(1);
-            node2.dispatchEvent.should.not.have.been.called;
+            node2.dispatchEvent.should.have.callCount(1);
         });
     });
 });

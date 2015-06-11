@@ -7,6 +7,7 @@
 var name        = 'client/listen/listen_by_event_bindings';
 var taste       = require('taste');
 var strategy    = taste.target(name);
+var dom         = require('../../../mock_dom');
 
 describe('UNIT ' + name, function () {
     describe('walkDOM()', function () {
@@ -56,6 +57,8 @@ describe('UNIT ' + name, function () {
 
     describe('getNodeEvents()', function () {
         it('should return nothing if nothing sent in', function () {
+            dom.reset();
+
             var opts = { document: {}};
             var expected = [];
             var actual = strategy.getNodeEvents({}, opts);

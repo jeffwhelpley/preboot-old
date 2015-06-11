@@ -4,14 +4,17 @@
  *
  * This listen strategy will look for a specific attribute which contains all the elements
  * that a given element is listening to.
- *
- * @param strategy
- * @param opts
  */
-function getNodeEvents(strategy, opts) {
+var dom = require('../dom');
+
+/**
+ * Get all node events with Angular event bindings
+ * @param strategy
+ * @returns {Array}
+ */
+function getNodeEvents(strategy) {
     var attributeName = strategy.attributeName || 'preboot-events';
-    var root = opts.serverRoot || opts.document;
-    var elems = root.querySelectorAll('[' + attributeName + ']');
+    var elems = dom.getAllAppNodes('[' + attributeName + ']');
 
     // if no elements found, return empty array since no node events
     if (!elems) { return []; }

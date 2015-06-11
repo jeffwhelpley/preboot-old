@@ -6,18 +6,16 @@
  * the page so reboot will need to find the element in the new client
  * rendered DOM that matches the element it has in memory.
  */
-var domSelector = require('../select/dom_selector');
+var dom = require('../dom');
 
 /**
  * Loop through all events and replay each by trying to find a node
  * that most closely resembles the original.
  *
  * @param events
- * @param strategy
- * @param opts
  * @returns {Array}
  */
-function replayEvents(events, strategy, opts) {
+function replayEvents(events) {
     var i, eventData, serverNode, clientNode, event;
     var remainingEvents = [];
     events = events || [];
@@ -27,7 +25,7 @@ function replayEvents(events, strategy, opts) {
         eventData = events[i];
         event = eventData.event;
         serverNode = eventData.node;
-        clientNode = domSelector.findClientNode(serverNode, opts);
+        clientNode = dom.findClientNode(serverNode);
 
         if (clientNode) {
             clientNode.dispatchEvent(event);

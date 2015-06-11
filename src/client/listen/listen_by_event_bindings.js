@@ -5,8 +5,9 @@
  * Listen by Angular event binding within the HTML document. This strategy
  * involves walking the DOM to find any on-*="" or ()="" attributes.
  */
-var eventPattern = /^(on\-.*)|(\(.*\))$/;
-var nodeEvents = [];
+var dom             = require('../dom');
+var eventPattern    = /^(on\-.*)|(\(.*\))$/;
+var nodeEvents      = [];
 
 /**
  * This is from Crockford to walk the DOM (http://whlp.ly/1Ii6YbR)
@@ -57,12 +58,10 @@ function addNodeEvents(node) {
 
 /**
  * Walk the DOM adding listeners for each node that has the pattern
- * @param strategy
- * @param opts
  */
-function getNodeEvents(strategy, opts) {
+function getNodeEvents() {
     nodeEvents.splice(0, nodeEvents.length);
-    walkDOM(opts.document.body, addNodeEvents);
+    walkDOM(dom.state.body, addNodeEvents);
     return nodeEvents;
 }
 

@@ -31,6 +31,7 @@ describe('UNIT ' + name, function () {
                 completeEvent: 'BootstrapComplete',
                 pauseEvent: 'PrebootPause',
                 resumeEvent: 'PrebootResume',
+                freezeEvent: 'PrebootFreeze',
                 listen: [],
                 replay: []
             };

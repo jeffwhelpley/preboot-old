@@ -3,13 +3,16 @@
  * Date: 6/2/15
  *
  * Listen by an explicit list of selectors mapped to a set of events
- *
- * @param strategy
- * @param opts
  */
-function getNodeEvents(strategy, opts) {
+var dom = require('../dom');
+
+/**
+ * Get all node events for a given set of selectors
+ * @param strategy
+ * @returns {Array}
+ */
+function getNodeEvents(strategy) {
     var nodeEvents = [];
-    var root = opts.serverRoot || opts.document;
     var eventsBySelector = strategy.eventsBySelector || {};
     var selectors = Object.keys(eventsBySelector);
     var selectorIdx, selector, elem, elems, i, j, events;
@@ -18,7 +21,7 @@ function getNodeEvents(strategy, opts) {
     for (selectorIdx = 0; selectorIdx < selectors.length; selectorIdx++) {
         selector = selectors[selectorIdx];
         events = eventsBySelector[selector];
-        elems = root.querySelectorAll(selector);
+        elems = dom.getAllAppNodes(selector);
 
         // only do something if there are elements found
         if (elems) {
@@ -40,7 +43,6 @@ function getNodeEvents(strategy, opts) {
 
     return nodeEvents;
 }
-
 
 module.exports = {
     getNodeEvents: getNodeEvents

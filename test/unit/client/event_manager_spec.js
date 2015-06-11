@@ -9,44 +9,16 @@ var taste       = require('taste');
 var strategy    = taste.target(name);
 
 describe('UNIT ' + name, function () {
-    describe('hideOverlay()', function () {
-        it('should not do anything if no params', function () {
-            strategy.hideOverlay();
-            taste.should.not.exist(strategy.state.overlay);
-        });
-
-        it('should set the display prop if there is an overlay', function () {
-            strategy.state.overlay = { style: {} };
-            strategy.hideOverlay();
-            strategy.state.overlay.style.display.should.equal('none');
-        });
-    });
-
-    describe('displayOverlay()', function () {
-        it('should display an overlay', function () {
-            var document = {
-                createElement: function () {
-                    return { style: {} };
-                },
-                body: { appendChild: taste.spy() }
-            };
-
-            strategy.displayOverlay(document, 1);
-            strategy.state.overlay.style.opacity.should.equal('.27');
-            document.body.appendChild.should.have.callCount(1);
-        });
-    });
-
     describe('getEventHandler()', function () {
         it('should get handler that does nothing', function () {
-            var document = {};
             var config = {};
             var node = {};
             var eventName = 'blah';
 
+            strategy.state.listening = true;
             strategy.state.eventListeners = [];
             strategy.state.events = [];
-            strategy.getEventHandler(document, config, node, eventName)();
+            strategy.getEventHandler(config, node, eventName)();
             strategy.state.events.length.should.equal(1);
         });
     });
@@ -113,7 +85,7 @@ describe('UNIT ' + name, function () {
     describe('cleanup()', function () {
         it('should cleanup existing resources', function () {
             strategy.state.eventListeners = [];
-            strategy.cleanup();
+            strategy.cleanup({});
             strategy.state.events.should.deep.equal([]);
         });
     });

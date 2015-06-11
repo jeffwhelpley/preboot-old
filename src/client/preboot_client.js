@@ -6,45 +6,19 @@
  * This will be browserified and then inlined in the head of an HTML
  * document along with a call to this module that passes in the
  * browser document object and all the options. See the
- * preboot_server to see how this code is generated and inserted
- * into HTML. At a high level what is happening here is:
- *
- *      1) Start tracking events
- *      2) Start tracking focus
- *      3) Once bootstrap is complete:
- *              A) replay all events
- *              B) switch from the server buffer to the client buffer
- *              C) set focus at the last known location
- *              D) cleanup all resources
- *
- * Note that many of these steps are options and can be configured through
- * the opts input object. In the future we will optimize the amount of code
- * needed by doing custom builds where the code not needed would not be
- * included in the final client side JS generated.
- *
- * @param document
- * @param opts See README for details
+ * README for details on how this works
  */
-var eventManager = require('./event_manager');
-var focusManager = require('./focus/focus_manager');
-var bufferManager = require('./buffer/buffer_manager');
+var dom             = require('./dom');
+var eventManager    = require('./event_manager');
+var bufferManager   = require('./buffer/buffer_manager');
+
+// in each client-side module, we store state in an object so we can mock
+// it out during testing and easily reset it as necessary
 var state = {
     canComplete: true,      // set to false if preboot paused through an event
-    completeCalled: false   // set to true once the completion event has been raised
+    completeCalled: false,  // set to true once the completion event has been raised
+    freeze: null            // only used if freeze option is passed in
 };
-
-/**
- * Most of the options should have been normalized by the clientCodeGenerator, so if
- * no options here, throw error. Really all this is for is to add window/document
- * based objects to the opts.
- *
- * @param opts
- */
-function normalizeOptions(opts) {
-    var document = opts.document = window.document;
-    opts.serverRoot = document.querySelectorAll(opts.serverRoot || opts.clientRoot || 'body')[0];
-    opts.clientRoot = opts.clientRoot ? document.querySelectorAll(opts.clientRoot)[0] : opts.serverRoot;
-}
 
 /**
  * Get function to run once window has loaded
@@ -54,17 +28,24 @@ function normalizeOptions(opts) {
 function getOnLoadHandler(opts) {
     return function onLoad() {
 
-        normalizeOptions(opts);                                 // get the server and client roots
+        // re-initialize dom now that we have the body
+        dom.init({ window: window });
 
+        // make sure the app root is set
+        dom.updateRoots(dom.getDocumentNode(opts.appRoot));
+
+        // if we are buffering, need to switch around the divs
         if (opts.buffer) {
-            bufferManager.hideClient(opts.clientRoot);          // make sure client root is hidden
+            bufferManager.prep(opts);
         }
 
-        eventManager.startListening(opts);                      // add all the event handlers
-
-        if (opts.focus) {
-            focusManager.startTracking(opts.document);          // start tracking focus on the page
+        // if we could potentiall freeze the UI, we need to prep (i.e. to add divs for overlay, etc.)
+        if (opts.freeze) {
+            state.freeze.prep(opts);
         }
+
+        // start listening to events
+        eventManager.startListening(opts);
     };
 }
 
@@ -76,16 +57,19 @@ function getOnLoadHandler(opts) {
 function getBootstrapCompleteHandler(opts) {
     return function onComplete() {
 
-        // track that complete has been called and don't do anything if we can't complete
+        //TODO: in future can have client app pass data to preboot through BootstrapComplete event
+
+        // track that complete has been called
         state.completeCalled = true;
+
+        // if we can't complete (i.e. preboot paused), just return right away
         if (!state.canComplete) { return; }
 
-        // can complete, so run it
-        if (opts.focus) { focusManager.stopTracking(); }        // stop tracking focus so we retain the last focus
+        // else we can complete, so get started with events
         eventManager.replayEvents(opts);                        // replay events on client DOM
         if (opts.buffer) { bufferManager.switchBuffer(opts); }  // switch from server to client buffer
-        if (opts.focus) { focusManager.setFocus(opts); }        // set focus on client buffer
-        eventManager.cleanup();                                 // cleanup event listeners
+        if (opts.freeze) { state.freeze.cleanup(); }            // cleanup freeze divs like overlay
+        eventManager.cleanup(opts);                             // cleanup event listeners
     };
 }
 
@@ -104,7 +88,7 @@ function pauseCompletion() {
  * @returns {Function}
  */
 function getResumeCompleteHandler(opts) {
-    return function onPause() {
+    return function onResume() {
         state.canComplete = true;
 
         if (state.completeCalled) {
@@ -123,16 +107,23 @@ function getResumeCompleteHandler(opts) {
  * @param opts
  */
 function start(opts) {
-    window.addEventListener('load', getOnLoadHandler(opts));
-    window.document.addEventListener(opts.pauseEvent, pauseCompletion);
-    window.document.addEventListener(opts.resumeEvent, getResumeCompleteHandler(opts));
-    window.document.addEventListener(opts.completeEvent, getBootstrapCompleteHandler(opts));
+
+    // freeze strategy is used at this top level, so need to get ref
+    state.freeze = (typeof opts.freeze === 'string') ?
+        require('./freeze/freeze_with_' + opts.freeze + '.js') :
+        opts.freeze;
+
+    // set up handlers for different preboot lifecycle events
+    dom.init({ window: window });
+    dom.onLoad(getOnLoadHandler(opts));
+    dom.on(opts.pauseEvent, pauseCompletion);
+    dom.on(opts.resumeEvent, getResumeCompleteHandler(opts));
+    dom.on(opts.completeEvent, getBootstrapCompleteHandler(opts));
 }
 
 // only expose start
 module.exports = {
     eventManager: eventManager,
-    focusManager: focusManager,
     bufferManager: bufferManager,
     start: start
 };
