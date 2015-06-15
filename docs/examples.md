@@ -29,7 +29,7 @@ var exphbs      = require('express-handlebars');
 var preboot     = require('preboot');
 var Handlebars  = require('handlebars');
 
-var hbs = expressHandlebars.create({
+var hbs = exphbs.create({
   defaultLayout: 'main',
   handlebars: Handlebars,
   helpers: {
