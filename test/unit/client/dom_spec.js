@@ -45,7 +45,7 @@ addParent(clientDocument);
 describe('UNIT ' + name, function () {
 
     beforeEach(function () {
-        dom.reset();
+        dom.init({});
     });
 
     describe('getNodeKey()', function () {
@@ -63,22 +63,22 @@ describe('UNIT ' + name, function () {
             addParent(document);
 
             var expected = 'DIV_s2_s4';
-            var actual = strategy.getNodeKey(node, rootNode);
+            var actual = dom.getNodeKey(node, rootNode);
             actual.should.equal(expected);
         });
     });
 
     describe('findClientNode()', function () {
         it('should find a client node from a server node', function () {
-            dom.reset();
+            dom.init({});
             dom.state.clientRoot = clientRoot;
             dom.state.appRoot = dom.state.serverRoot = serverRoot;
 
-            var actual = strategy.findClientNode(serverNode);
+            var actual = dom.findClientNode(serverNode);
             actual.should.equal(clientNode);
 
             /* jshint camelcase: false */
-            var nodeInCache = strategy.nodeCache.DIV_s2_s4;
+            var nodeInCache = dom.nodeCache.DIV_s2_s4;
             taste.should.exist(nodeInCache, 'No item found in cache');
             nodeInCache.length.should.be.greaterThan(0);
             nodeInCache[0].clientNode.should.equal(clientNode);
@@ -86,19 +86,19 @@ describe('UNIT ' + name, function () {
         });
 
         it('should get client node from cache', function () {
-            dom.reset();
+            dom.init({});
             dom.state.clientRoot = clientRoot;
             dom.state.appRoot = dom.state.serverRoot = serverRoot;
 
             var expected = { blah: 'true' };
 
             /* jshint camelcase: false */
-            strategy.nodeCache.DIV_s2_s4 = [{
+            dom.nodeCache.DIV_s2_s4 = [{
                 clientNode: expected,
                 serverNode: serverNode
             }];
 
-            var actual = strategy.findClientNode(serverNode);
+            var actual = dom.findClientNode(serverNode);
             actual.should.equal(expected);
         });
     });

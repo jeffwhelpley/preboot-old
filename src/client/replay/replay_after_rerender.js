@@ -13,9 +13,11 @@ var dom = require('../dom');
  * that most closely resembles the original.
  *
  * @param events
+ * @param strategy
+ * @param log
  * @returns {Array}
  */
-function replayEvents(events) {
+function replayEvents(events, strategy, log) {
     var i, eventData, serverNode, clientNode, event;
     var remainingEvents = [];
     events = events || [];
@@ -30,8 +32,10 @@ function replayEvents(events) {
         if (clientNode) {
             clientNode.dispatchEvent(event);
             clientNode.value = serverNode.value;  // need to explicitly set value since keypress events won't transfer
+            log(3, serverNode, clientNode, event);
         }
         else {
+            log(4, serverNode);
             remainingEvents.push(eventData);
         }
     }

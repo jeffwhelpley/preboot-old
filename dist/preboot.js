@@ -125,9 +125,11 @@ var dom = require('../dom');
  * that most closely resembles the original.
  *
  * @param events
+ * @param strategy
+ * @param log
  * @returns {Array}
  */
-function replayEvents(events) {
+function replayEvents(events, strategy, log) {
     var i, eventData, serverNode, clientNode, event;
     var remainingEvents = [];
     events = events || [];
@@ -142,8 +144,10 @@ function replayEvents(events) {
         if (clientNode) {
             clientNode.dispatchEvent(event);
             clientNode.value = serverNode.value;  // need to explicitly set value since keypress events won't transfer
+            log(3, serverNode, clientNode, event);
         }
         else {
+            log(4, serverNode);
             remainingEvents.push(eventData);
         }
     }
@@ -243,8 +247,8 @@ var nodeCache = {};
  * @param opts
  */
 function init(opts) {
-    state.window = opts.window || state.window;
-    state.document = opts.document || state.window.document;
+    state.window = opts.window || state.window || {};
+    state.document = opts.document || state.window.document || {};
     state.body = opts.body || state.document.body;
     state.appRoot = opts.appRoot || state.body;
     state.serverRoot = state.clientRoot = state.appRoot;
@@ -599,8 +603,9 @@ function startListening(opts) {
 /**
  * Loop through replay strategies and call replayEvents functions
  * @param opts
+ * @param log
  */
-function replayEvents(opts) {
+function replayEvents(opts, log) {
     var replayStrategies = opts.replay || [];
 
     state.listening = false;
@@ -612,7 +617,7 @@ function replayEvents(opts) {
             require('./replay/replay_after_' + strategy.name + '.js').replayEvents;
 
         // get array of objs with 1 node and 1 event; add event listener for each
-        state.events = replayEvts(state.events, strategy, dom);
+        state.events = replayEvts(state.events, strategy, log);
     }
 
     //TODO: figure out better solution for remaining events
@@ -661,6 +666,62 @@ module.exports = {
 },{"./dom":2}],4:[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
+ * Date: 6/19/15
+ *
+ * Logger for preboot that can be used when the debug
+ * option is used. It will print out info about what
+ * is happening during the preboot process
+ */
+
+function logOptions(opts) {
+    console.log('preboot options are:');
+    console.log(opts);
+}
+
+function logEvents(events) {
+    console.log('preboot events captured are:');
+    console.log(events);
+}
+
+function replaySuccess(serverNode, clientNode, event) {
+    console.log('replaying:');
+    console.log({
+        serverNode: serverNode,
+        clientNode: clientNode,
+        event: event
+    });
+}
+
+function missingClientNode(serverNode) {
+    console.log('preboot could not find client node for:');
+    console.log(serverNode);
+}
+
+var logMap = {
+    '1': logOptions,
+    '2': logEvents,
+    '3': replaySuccess,
+    '4': missingClientNode
+};
+
+function log() {
+    if (!arguments.length) { return; }
+
+    var id = arguments[0] + '';
+    var fn = logMap[id];
+
+    if (fn) {
+        var args = arguments.length > 0 ? [].splice.call(arguments, 1) : [];
+        fn.apply(null, args);
+    }
+}
+
+module.exports = {
+    log: log
+};
+},{}],5:[function(require,module,exports){
+/**
+ * Author: Jeff Whelpley
  * Date: 6/2/15
  *
  * This is the main entry point for the client side bootstrap library.
@@ -672,6 +733,7 @@ module.exports = {
 var dom             = require('./dom');
 var eventManager    = require('./event_manager');
 var bufferManager   = require('./buffer/buffer_manager');
+var log             = require('./log').log || function () {};
 
 // in each client-side module, we store state in an object so we can mock
 // it out during testing and easily reset it as necessary
@@ -681,6 +743,27 @@ var state = {
     freeze: null,           // only used if freeze option is passed in
     opts: null
 };
+
+/**
+ * Get a function to run once bootstrap has completed
+ */
+function done() {
+    var opts = state.opts;
+
+    log(2, eventManager.state.events);
+
+    // track that complete has been called
+    state.completeCalled = true;
+
+    // if we can't complete (i.e. preboot paused), just return right away
+    if (!state.canComplete) { return; }
+
+    // else we can complete, so get started with events
+    eventManager.replayEvents(opts, log);                   // replay events on client DOM
+    if (opts.buffer) { bufferManager.switchBuffer(opts); }  // switch from server to client buffer
+    if (opts.freeze) { state.freeze.cleanup(); }            // cleanup freeze divs like overlay
+    eventManager.cleanup(opts);                             // cleanup event listeners
+}
 
 /**
  * Get function to run once window has loaded
@@ -701,7 +784,7 @@ function getOnLoadHandler(opts) {
             bufferManager.prep(opts);
         }
 
-        // if we could potentiall freeze the UI, we need to prep (i.e. to add divs for overlay, etc.)
+        // if we could potentially freeze the UI, we need to prep (i.e. to add divs for overlay, etc.)
         if (opts.freeze) {
             state.freeze.prep(opts);
         }
@@ -709,25 +792,6 @@ function getOnLoadHandler(opts) {
         // start listening to events
         eventManager.startListening(opts);
     };
-}
-
-/**
- * Get a function to run once bootstrap has completed
- */
-function done() {
-    var opts = state.opts;
-
-    // track that complete has been called
-    state.completeCalled = true;
-
-    // if we can't complete (i.e. preboot paused), just return right away
-    if (!state.canComplete) { return; }
-
-    // else we can complete, so get started with events
-    eventManager.replayEvents(opts);                        // replay events on client DOM
-    if (opts.buffer) { bufferManager.switchBuffer(opts); }  // switch from server to client buffer
-    if (opts.freeze) { state.freeze.cleanup(); }            // cleanup freeze divs like overlay
-    eventManager.cleanup(opts);                             // cleanup event listeners
 }
 
 /**
@@ -741,10 +805,9 @@ function pauseCompletion() {
  * Resume the completion process; if complete already called,
  * call it again right away.
  *
- * @param opts
  * @returns {Function}
  */
-function getResumeCompleteHandler(opts) {
+function getResumeCompleteHandler() {
     return function onResume() {
         state.canComplete = true;
 
@@ -763,6 +826,8 @@ function getResumeCompleteHandler(opts) {
  */
 function start(opts) {
     state.opts = opts;
+
+    log(1, opts);
 
     // freeze strategy is used at this top level, so need to get ref
     state.freeze = (typeof opts.freeze === 'string') ?
@@ -784,8 +849,8 @@ module.exports = {
     done: done
 };
 
-},{"./buffer/buffer_manager":1,"./dom":2,"./event_manager":3}]},{},[4])(4)
+},{"./buffer/buffer_manager":1,"./dom":2,"./event_manager":3,"./log":4}]},{},[5])(5)
 });
 
-preboot.start({"appRoot":"app","replay":[{"name":"rerender"}],"freeze":"spinner","focus":true,"buffer":true,"keyPress":true,"buttonPress":true,"pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","freezeEvent":"PrebootFreeze","listen":[{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["keypress","keyup","keydown"]}},{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["focusin","focusout"]},"trackFocus":true,"doNotReplay":true},{"name":"selectors","preventDefault":true,"eventsBySelector":{"input[type=\"submit\"],button":["click"]},"dispatchEvent":"PrebootFreeze"}],"freezeStyles":{"overlay":{"className":"preboot-overlay","style":{"position":"absolute","display":"none","zIndex":"9999999","top":"0","left":"0","width":"100%","height":"100%"}},"spinner":{"className":"preboot-spinner","style":{"position":"absolute","display":"none","zIndex":"99999999"}}}});
+preboot.start({"appRoot":"app","replay":[{"name":"rerender"}],"freeze":"spinner","focus":true,"buffer":true,"keyPress":true,"buttonPress":true,"debug":true,"pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","freezeEvent":"PrebootFreeze","listen":[{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["keypress","keyup","keydown"]}},{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["focusin","focusout"]},"trackFocus":true,"doNotReplay":true},{"name":"selectors","preventDefault":true,"eventsBySelector":{"input[type=\"submit\"],button":["click"]},"dispatchEvent":"PrebootFreeze"}],"freezeStyles":{"overlay":{"className":"preboot-overlay","style":{"position":"absolute","display":"none","zIndex":"9999999","top":"0","left":"0","width":"100%","height":"100%"}},"spinner":{"className":"preboot-spinner","style":{"position":"absolute","display":"none","zIndex":"99999999"}}}});
 

@@ -16,8 +16,8 @@ var nodeCache = {};
  * @param opts
  */
 function init(opts) {
-    state.window = opts.window || state.window;
-    state.document = opts.document || state.window.document;
+    state.window = opts.window || state.window || {};
+    state.document = opts.document || state.window.document || {};
     state.body = opts.body || state.document.body;
     state.appRoot = opts.appRoot || state.body;
     state.serverRoot = state.clientRoot = state.appRoot;

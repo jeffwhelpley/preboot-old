@@ -36,7 +36,6 @@
 
         // fire bootstrap complete manually
         function fireBootstrapComplete() {
-            console.log('fire bootstrap complete');
             preboot.done();
         }
 
@@ -60,13 +59,6 @@
         function clientClick() {
             console.log('client clicked');
         }
-
-        // see that client type events occurred
-        var clientButton = document.querySelector('app > input');
-        clientButton.addEventListener('keypress', function (event) {
-            console.log('client key pressed: ' + event.which);
-            console.log(event);
-        });
 
     </script>
 </body>

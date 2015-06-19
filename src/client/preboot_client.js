@@ -11,6 +11,7 @@
 var dom             = require('./dom');
 var eventManager    = require('./event_manager');
 var bufferManager   = require('./buffer/buffer_manager');
+var log             = require('./log').log || function () {};
 
 // in each client-side module, we store state in an object so we can mock
 // it out during testing and easily reset it as necessary
@@ -20,6 +21,27 @@ var state = {
     freeze: null,           // only used if freeze option is passed in
     opts: null
 };
+
+/**
+ * Get a function to run once bootstrap has completed
+ */
+function done() {
+    var opts = state.opts;
+
+    log(2, eventManager.state.events);
+
+    // track that complete has been called
+    state.completeCalled = true;
+
+    // if we can't complete (i.e. preboot paused), just return right away
+    if (!state.canComplete) { return; }
+
+    // else we can complete, so get started with events
+    eventManager.replayEvents(opts, log);                   // replay events on client DOM
+    if (opts.buffer) { bufferManager.switchBuffer(opts); }  // switch from server to client buffer
+    if (opts.freeze) { state.freeze.cleanup(); }            // cleanup freeze divs like overlay
+    eventManager.cleanup(opts);                             // cleanup event listeners
+}
 
 /**
  * Get function to run once window has loaded
@@ -40,7 +62,7 @@ function getOnLoadHandler(opts) {
             bufferManager.prep(opts);
         }
 
-        // if we could potentiall freeze the UI, we need to prep (i.e. to add divs for overlay, etc.)
+        // if we could potentially freeze the UI, we need to prep (i.e. to add divs for overlay, etc.)
         if (opts.freeze) {
             state.freeze.prep(opts);
         }
@@ -48,25 +70,6 @@ function getOnLoadHandler(opts) {
         // start listening to events
         eventManager.startListening(opts);
     };
-}
-
-/**
- * Get a function to run once bootstrap has completed
- */
-function done() {
-    var opts = state.opts;
-
-    // track that complete has been called
-    state.completeCalled = true;
-
-    // if we can't complete (i.e. preboot paused), just return right away
-    if (!state.canComplete) { return; }
-
-    // else we can complete, so get started with events
-    eventManager.replayEvents(opts);                        // replay events on client DOM
-    if (opts.buffer) { bufferManager.switchBuffer(opts); }  // switch from server to client buffer
-    if (opts.freeze) { state.freeze.cleanup(); }            // cleanup freeze divs like overlay
-    eventManager.cleanup(opts);                             // cleanup event listeners
 }
 
 /**
@@ -80,10 +83,9 @@ function pauseCompletion() {
  * Resume the completion process; if complete already called,
  * call it again right away.
  *
- * @param opts
  * @returns {Function}
  */
-function getResumeCompleteHandler(opts) {
+function getResumeCompleteHandler() {
     return function onResume() {
         state.canComplete = true;
 
@@ -102,6 +104,8 @@ function getResumeCompleteHandler(opts) {
  */
 function start(opts) {
     state.opts = opts;
+
+    log(1, opts);
 
     // freeze strategy is used at this top level, so need to get ref
     state.freeze = (typeof opts.freeze === 'string') ?

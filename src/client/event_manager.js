@@ -108,8 +108,9 @@ function startListening(opts) {
 /**
  * Loop through replay strategies and call replayEvents functions
  * @param opts
+ * @param log
  */
-function replayEvents(opts) {
+function replayEvents(opts, log) {
     var replayStrategies = opts.replay || [];
 
     state.listening = false;
@@ -121,7 +122,7 @@ function replayEvents(opts) {
             require('./replay/replay_after_' + strategy.name + '.js').replayEvents;
 
         // get array of objs with 1 node and 1 event; add event listener for each
-        state.events = replayEvts(state.events, strategy, dom);
+        state.events = replayEvts(state.events, strategy, log);
     }
 
     //TODO: figure out better solution for remaining events

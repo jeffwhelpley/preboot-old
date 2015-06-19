@@ -233,6 +233,10 @@ function getClientCodeStream(opts) {
         b.ignore('buffer_manager.js');
     }
 
+    if (!opts.debug) {
+        b.ignore('log.js');
+    }
+
     var outputStream = b.bundle()
         .pipe(source('src/client/preboot_client.js'))
         .pipe(buffer())

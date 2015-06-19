@@ -28,7 +28,6 @@ describe('UNIT ' + name, function () {
     describe('normalizeOptions()', function () {
         it('should set defaults even if nothing passed in', function () {
             var expected = {
-                completeEvent: 'BootstrapComplete',
                 pauseEvent: 'PrebootPause',
                 resumeEvent: 'PrebootResume',
                 freezeEvent: 'PrebootFreeze',

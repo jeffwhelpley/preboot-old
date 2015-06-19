@@ -15,7 +15,8 @@ module.exports = function (gulp, opts) {
             focus:       true,          // maintain focus after re-rendering
             buffer:      true,          // client app will write to hidden div until bootstrap complete
             keyPress:    true,          // all keystrokes in text elements recorded
-            buttonPress: true           // when button pressed, record and freeze page
+            buttonPress: true,          // when button pressed, record and freeze page
+            debug:       true
         };
 
     return function () {
