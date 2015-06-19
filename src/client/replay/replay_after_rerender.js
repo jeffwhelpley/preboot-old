@@ -30,8 +30,8 @@ function replayEvents(events, strategy, log) {
         clientNode = dom.findClientNode(serverNode);
 
         if (clientNode) {
-            clientNode.dispatchEvent(event);
             clientNode.value = serverNode.value;  // need to explicitly set value since keypress events won't transfer
+            clientNode.dispatchEvent(event);
             log(3, serverNode, clientNode, event);
         }
         else {
