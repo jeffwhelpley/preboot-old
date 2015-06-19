@@ -2,6 +2,9 @@
 
 Control server-rendered page before client-side web app loads.
 
+**NOTE**: This has not been officially released yet. We will be opening up
+the GitHub repo and publishing documentation before the end of July, 2015.
+
 ## Key Features
 
 1. Record and play back events
