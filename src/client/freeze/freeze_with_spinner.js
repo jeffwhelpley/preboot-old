@@ -26,12 +26,15 @@ function prep(opts) {
     state.spinner = dom.addNodeToBody('div', spinnerStyles.className, spinnerStyles.style);
 
     // when a freeze event occurs, show the overlay and spinner
-    dom.on(opts.freezeEvent, function (event) {
+    dom.on(opts.freezeEvent, function () {
         var activeNode = eventManager.state.activeNode;
         if (activeNode) {
             state.spinner.style.top = activeNode.offsetTop;
             state.spinner.style.left = activeNode.offsetLeft;
-            //activeNode.blur();
+
+            if (opts.noOverlayBlur) {
+                activeNode.blur();
+            }
         }
 
         state.overlay.style.display = 'block';
