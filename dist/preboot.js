@@ -6,6 +6,7 @@
  * Freeze by showing a spinner
  */
 var dom = require('../dom');
+var eventManager = require('../event_manager');
 
 var state = {
     overlay: null,
@@ -27,8 +28,13 @@ function prep(opts) {
 
     // when a freeze event occurs, show the overlay and spinner
     dom.on(opts.freezeEvent, function (event) {
-        state.spinner.top = event.target.offsetTop;
-        state.spinner.left = event.target.offsetLeft;
+        var activeNode = eventManager.state.activeNode;
+        if (activeNode) {
+            state.spinner.style.top = activeNode.offsetTop;
+            state.spinner.style.left = activeNode.offsetLeft;
+            //activeNode.blur();
+        }
+
         state.overlay.style.display = 'block';
         state.spinner.style.display = 'block';
 
@@ -59,7 +65,7 @@ module.exports = {
     prep: prep,
     cleanup: cleanup
 };
-},{"../dom":2}],"./listen/listen_by_selectors.js":[function(require,module,exports){
+},{"../dom":2,"../event_manager":3}],"./listen/listen_by_selectors.js":[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
  * Date: 6/2/15

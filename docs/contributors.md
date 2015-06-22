@@ -12,6 +12,7 @@ other browsers, especially IE.
 goal here is to improve percieved performance.
 1. **Build time warning messages** - Much better warning/error messages while attempting to build the preboot client
 side code to help guide developers.
+1. **Optional Code** - Need to get the Browserify ignore() working. Something messed up with it now.
 
 More info coming soon on the internals of this library, but if you look through the code, you will find that it
 has a lot of comments is should be pretty easy to follow along. Start with 
