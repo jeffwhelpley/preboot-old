@@ -50,6 +50,11 @@ function getEventHandler(strategy, node, eventName) {
             state.activeNode = (event.type === 'focusin') ? event.target : null;
         }
 
+        //TODO: remove this hack after angularu presentation
+        if (eventName === 'keyup' && event.which === 13 && node.attributes['(keyup.enter)']) {
+            dom.dispatchGlobalEvent('PrebootFreeze');
+        }
+
         // we will record events for later replay unless explicitly marked as doNotReplay
         if (!strategy.doNotReplay) {
             state.events.push({
@@ -122,7 +127,7 @@ function replayEvents(opts, log) {
             require('./replay/replay_after_' + strategy.name + '.js').replayEvents;
 
         // get array of objs with 1 node and 1 event; add event listener for each
-        state.events = replayEvts(state.events, strategy, log);
+        state.events = replayEvts(state.events, strategy, log, dom);
     }
 
     //TODO: figure out better solution for remaining events

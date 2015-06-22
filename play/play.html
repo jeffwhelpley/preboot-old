@@ -9,6 +9,7 @@
         <input
                 style="height: 50px; width: 50%; font-size: 24px; padding: 20px; margin: 20px 25%"
                 type="text"
+                (keyup.enter)="enterEntered()"
                 name="one">
         <button
                 style="height: 50px; width: 50%; font-size: 24px text-align: center; margin: 20px 25%"
@@ -20,6 +21,7 @@
         <input
                 style="height: 50px; width: 50%; font-size: 24px; padding: 20px; margin: 20px 25%"
                 type="text"
+                (keyup.enter)="enterEntered()"
                 name="one">
         <button
                 style="height: 50px; width: 50%; font-size: 24px text-align: center; margin: 20px 25%"
@@ -58,6 +60,11 @@
         // see that client was clicked
         function clientClick() {
             console.log('client clicked');
+        }
+
+        // see that client was clicked
+        function enterEntered() {
+            console.log('enter entered');
         }
 
     </script>

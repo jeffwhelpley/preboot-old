@@ -22,20 +22,38 @@ var freezeStrategies = { spinner: true };
 
 // map of input opts to client code
 var clientCodeCache = {};
+var FUNC_START = 'START_FUNCTION_HERE';
+var FUNC_STOP = 'STOP_FUNCTION_HERE';
 
 /**
  * Stringify an object and include functions
  * @param obj
  */
 function stringifyWithFunctions(obj) {
-    return JSON.stringify(obj, function (key, value) {
+    var str = JSON.stringify(obj, function (key, value) {
         if (!!(value && value.constructor && value.call && value.apply)) {  // if function
-            return value.toString();
+            return FUNC_START + value.toString() + FUNC_STOP;
         }
         else {
             return value;
         }
     });
+
+    // now we have to replace all the functions
+    var startFuncIdx = str.indexOf(FUNC_START);
+    var stopFuncIdx, fn;
+    while (startFuncIdx >= 0) {
+        stopFuncIdx = str.indexOf(FUNC_STOP);
+
+        // pull string out
+        fn = str.substring(startFuncIdx + FUNC_START.length, stopFuncIdx);
+        fn = fn.replace(/\\n/g, '\n');
+
+        str = str.substring(0, startFuncIdx - 1) + fn + str.substring(stopFuncIdx + FUNC_STOP.length + 1);
+        startFuncIdx = str.indexOf(FUNC_START);
+    }
+
+    return str;
 }
 
 /**

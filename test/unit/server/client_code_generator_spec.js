@@ -18,10 +18,12 @@ describe('UNIT ' + name, function () {
         });
 
         it('should stringify with functions', function () {
-            var obj = { blah: 'foo', zoo: function (blah) { return blah + 1; }};
-            var expected = '{"blah":"foo","zoo":"function (blah) { return blah + 1; }"}';
+            var obj = { blah: 'foo', zoo: function (blah) {
+                return blah + 1;
+            }};
+            var expected = '{"blah":"foo","zoo":function (';
             var actual = generator.stringifyWithFunctions(obj);
-            actual.should.equal(expected);
+            actual.substring(0, 30).should.equal(expected);
         });
     });
 

@@ -142,8 +142,8 @@ function replayEvents(events, strategy, log) {
         clientNode = dom.findClientNode(serverNode);
 
         if (clientNode) {
-            clientNode.dispatchEvent(event);
             clientNode.value = serverNode.value;  // need to explicitly set value since keypress events won't transfer
+            clientNode.dispatchEvent(event);
             log(3, serverNode, clientNode, event);
         }
         else {
@@ -545,6 +545,11 @@ function getEventHandler(strategy, node, eventName) {
             state.activeNode = (event.type === 'focusin') ? event.target : null;
         }
 
+        //TODO: remove this hack after angularu presentation
+        if (eventName === 'keyup' && event.which === 13 && node.attributes['(keyup.enter)']) {
+            dom.dispatchGlobalEvent('PrebootFreeze');
+        }
+
         // we will record events for later replay unless explicitly marked as doNotReplay
         if (!strategy.doNotReplay) {
             state.events.push({
@@ -617,7 +622,7 @@ function replayEvents(opts, log) {
             require('./replay/replay_after_' + strategy.name + '.js').replayEvents;
 
         // get array of objs with 1 node and 1 event; add event listener for each
-        state.events = replayEvts(state.events, strategy, log);
+        state.events = replayEvts(state.events, strategy, log, dom);
     }
 
     //TODO: figure out better solution for remaining events
@@ -852,5 +857,5 @@ module.exports = {
 },{"./buffer/buffer_manager":1,"./dom":2,"./event_manager":3,"./log":4}]},{},[5])(5)
 });
 
-preboot.start({"appRoot":"app","replay":[{"name":"rerender"}],"freeze":"spinner","focus":true,"buffer":true,"keyPress":true,"buttonPress":true,"debug":true,"pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","freezeEvent":"PrebootFreeze","listen":[{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["keypress","keyup","keydown"]}},{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["focusin","focusout"]},"trackFocus":true,"doNotReplay":true},{"name":"selectors","preventDefault":true,"eventsBySelector":{"input[type=\"submit\"],button":["click"]},"dispatchEvent":"PrebootFreeze"}],"freezeStyles":{"overlay":{"className":"preboot-overlay","style":{"position":"absolute","display":"none","zIndex":"9999999","top":"0","left":"0","width":"100%","height":"100%"}},"spinner":{"className":"preboot-spinner","style":{"position":"absolute","display":"none","zIndex":"99999999"}}}});
+preboot.start({"appRoot":"app","freeze":"spinner","replay":[{"name":"rerender"}],"focus":true,"buffer":true,"keyPress":true,"buttonPress":true,"debug":true,"pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","freezeEvent":"PrebootFreeze","listen":[{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["keypress","keyup","keydown"]}},{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["focusin","focusout"]},"trackFocus":true,"doNotReplay":true},{"name":"selectors","preventDefault":true,"eventsBySelector":{"input[type=\"submit\"],button":["click"]},"dispatchEvent":"PrebootFreeze"},{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["keypress","keyup","keydown"]}},{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["focusin","focusout"]},"trackFocus":true,"doNotReplay":true},{"name":"selectors","preventDefault":true,"eventsBySelector":{"input[type=\"submit\"],button":["click"]},"dispatchEvent":"PrebootFreeze"}],"freezeStyles":{"overlay":{"className":"preboot-overlay","style":{"position":"absolute","display":"none","zIndex":"9999999","top":"0","left":"0","width":"100%","height":"100%"}},"spinner":{"className":"preboot-spinner","style":{"position":"absolute","display":"none","zIndex":"99999999"}}}});
 
