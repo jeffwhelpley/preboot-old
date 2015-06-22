@@ -258,7 +258,7 @@ function getClientCodeStream(opts) {
     var outputStream = b.bundle()
         .pipe(source('src/client/preboot_client.js'))
         .pipe(buffer())
-        .pipe(insert.append('\n\npreboot.start(' + stringifyWithFunctions(opts) + ');\n\n'))
+        .pipe(insert.append('\n\npreboot.init(' + stringifyWithFunctions(opts) + ');\n\n'))
         .pipe(rename('preboot.js'));
 
     // uglify if the option is passed in

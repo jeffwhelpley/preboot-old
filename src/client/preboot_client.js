@@ -99,10 +99,10 @@ function getResumeCompleteHandler() {
 }
 
 /**
- * Start preboot
+ * Init preboot
  * @param opts
  */
-function start(opts) {
+function init(opts) {
     state.opts = opts;
 
     log(1, opts);
@@ -114,15 +114,27 @@ function start(opts) {
 
     // set up handlers for different preboot lifecycle events
     dom.init({ window: window });
-    dom.onLoad(getOnLoadHandler(opts));
-    dom.on(opts.pauseEvent, pauseCompletion);
-    dom.on(opts.resumeEvent, getResumeCompleteHandler(opts));
+}
+
+/**
+ * Start preboot
+ */
+function start() {
+    dom.init({ window: window });
+
+    // if body there, then run load handler right away, otherwise register for onLoad
+    dom.state.body ? getOnLoadHandler(opts)() : dom.onLoad(getOnLoadHandler(opts));
+
+    // set up other handlers
+    dom.on(state.opts.pauseEvent, pauseCompletion);
+    dom.on(state.opts.resumeEvent, getResumeCompleteHandler());
 }
 
 // only expose start
 module.exports = {
     eventManager: eventManager,
     bufferManager: bufferManager,
+    init: init,
     start: start,
     done: done
 };
