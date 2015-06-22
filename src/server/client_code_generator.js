@@ -248,7 +248,7 @@ function getClientCodeStream(opts) {
 
     // remove the buffer code if we are not calling it
     if (!opts.buffer) {
-        b.ignore('buffer_manager.js');
+        b.ignore('./buffer/buffer_manager');
     }
 
     if (!opts.debug) {
