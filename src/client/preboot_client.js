@@ -123,7 +123,9 @@ function start() {
     dom.init({ window: window });
 
     // if body there, then run load handler right away, otherwise register for onLoad
-    dom.state.body ? getOnLoadHandler(opts)() : dom.onLoad(getOnLoadHandler(opts));
+    dom.state.body ?
+        getOnLoadHandler(state.opts)() :
+        dom.onLoad(getOnLoadHandler(state.opts));
 
     // set up other handlers
     dom.on(state.opts.pauseEvent, pauseCompletion);
