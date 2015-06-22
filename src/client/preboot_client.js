@@ -19,7 +19,8 @@ var state = {
     canComplete: true,      // set to false if preboot paused through an event
     completeCalled: false,  // set to true once the completion event has been raised
     freeze: null,           // only used if freeze option is passed in
-    opts: null
+    opts: null,
+    started: false
 };
 
 /**
@@ -120,6 +121,11 @@ function init(opts) {
  * Start preboot
  */
 function start() {
+
+    // we can only start once, so don't do anything if called multiple times
+    if (state.started) { return; }
+
+    // initialize the window
     dom.init({ window: window });
 
     // if body there, then run load handler right away, otherwise register for onLoad
