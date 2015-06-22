@@ -32,7 +32,7 @@ function prep(opts) {
             state.spinner.style.top = activeNode.offsetTop;
             state.spinner.style.left = activeNode.offsetLeft;
 
-            if (opts.noOverlayBlur) {
+            if (!opts.noOverlayBlur) {
                 activeNode.blur();
             }
         }
