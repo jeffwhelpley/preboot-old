@@ -130,12 +130,8 @@ function replayEvents(opts, log) {
         state.events = replayEvts(state.events, strategy, log, dom);
     }
 
-    //TODO: figure out better solution for remaining events
-    // if some events are remaining, log to the console
-    //if (state.events && state.events.length) {
-    //    console.log('Not all events replayed: ');
-    //    console.log(state.events);
-    //}
+    // log any remaining events (if in debug mode)
+    log(5, state.events);
 }
 
 /**

@@ -252,7 +252,7 @@ function getClientCodeStream(opts) {
     }
 
     if (!opts.debug) {
-        b.ignore('log.js');
+        b.ignore('../client/log');
     }
 
     var outputStream = b.bundle()
