@@ -30,6 +30,22 @@ var prebootOptions = {};  // see options section below
 var clientCode = preboot(prebootOptions);
 ```
 
+You then inject clientCode into the HEAD section of your server-side template. 
+We want preboot to ONLY start recording once the web app root exists in the DOM. We are
+still playing with the best way to do this (NOTE: we have tried onLoad and
+it does not work because the callback does not get executed quickly enough).
+For now, try putting the following
+`preboot.start()` call immediately after your web app root in your server side template:
+
+```
+<web-app-root-here>
+
+</web-app-root-here>
+<script>
+    preboot.start();
+</script>
+```
+
 Finally, once your client-side web app is "alive" it has to tell preboot that it is OK
 to replay events.
 

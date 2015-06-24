@@ -634,12 +634,8 @@ function replayEvents(opts, log) {
         state.events = replayEvts(state.events, strategy, log, dom);
     }
 
-    //TODO: figure out better solution for remaining events
-    // if some events are remaining, log to the console
-    //if (state.events && state.events.length) {
-    //    console.log('Not all events replayed: ');
-    //    console.log(state.events);
-    //}
+    // log any remaining events (if in debug mode)
+    log(5, state.events);
 }
 
 /**
@@ -710,11 +706,19 @@ function missingClientNode(serverNode) {
     console.log(serverNode);
 }
 
+function remainingEvents(events) {
+    if (events && events.length) {
+        console.log('the following events were not replayed:');
+        console.log(events);
+    }
+}
+
 var logMap = {
     '1': logOptions,
     '2': logEvents,
     '3': replaySuccess,
-    '4': missingClientNode
+    '4': missingClientNode,
+    '5': remainingEvents
 };
 
 function log() {

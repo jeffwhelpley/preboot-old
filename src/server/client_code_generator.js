@@ -211,7 +211,8 @@ function getClientCodeStream(opts) {
     // client code entry file
     var b = browserify({
         entries: [__dirname + '/../client/preboot_client.js'],
-        standalone: 'preboot'
+        standalone: 'preboot',
+        basedir: __dirname + '../client'
     });
 
     // add the listen strategy files to the bundle
@@ -252,7 +253,7 @@ function getClientCodeStream(opts) {
     }
 
     if (!opts.debug) {
-        b.ignore('../client/log');
+        b.ignore('./log');
     }
 
     var outputStream = b.bundle()
