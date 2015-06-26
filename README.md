@@ -2,8 +2,9 @@
 
 Control server-rendered page before client-side web app loads.
 
-**NOTE**: This has not been officially released yet. We will be opening up
-the GitHub repo and publishing documentation before the end of July, 2015.
+**NOTE**: In the process of doing some major refactoring to this library. 
+It works and you can try it out, but just be aware that there will be major
+changes coming soon.
 
 ## Key Features
 

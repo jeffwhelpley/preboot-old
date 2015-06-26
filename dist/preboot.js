@@ -68,7 +68,7 @@ module.exports = {
     prep: prep,
     cleanup: cleanup
 };
-},{"../dom":2,"../event_manager":3}],"./listen/listen_by_selectors.js":[function(require,module,exports){
+},{"../dom":3,"../event_manager":4}],"./listen/listen_by_selectors.js":[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
  * Date: 6/2/15
@@ -118,7 +118,7 @@ function getNodeEvents(strategy) {
 module.exports = {
     getNodeEvents: getNodeEvents
 };
-},{"../dom":2}],"./replay/replay_after_rerender.js":[function(require,module,exports){
+},{"../dom":3}],"./replay/replay_after_rerender.js":[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
  * Date: 6/2/15
@@ -167,7 +167,9 @@ function replayEvents(events, strategy, log) {
 module.exports = {
     replayEvents: replayEvents
 };
-},{"../dom":2}],1:[function(require,module,exports){
+},{"../dom":3}],1:[function(require,module,exports){
+
+},{}],2:[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
  * Date: 6/2/15
@@ -237,7 +239,7 @@ module.exports = {
     prep: prep,
     switchBuffer: switchBuffer
 };
-},{"../dom":2}],2:[function(require,module,exports){
+},{"../dom":3}],3:[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
  * Date: 6/10/15
@@ -501,7 +503,7 @@ module.exports = {
     getNodeKey: getNodeKey,
     findClientNode: findClientNode
 };
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
  * Date: 6/2/15
@@ -673,70 +675,7 @@ module.exports = {
     replayEvents: replayEvents,
     cleanup: cleanup
 };
-},{"./dom":2}],4:[function(require,module,exports){
-/**
- * Author: Jeff Whelpley
- * Date: 6/19/15
- *
- * Logger for preboot that can be used when the debug
- * option is used. It will print out info about what
- * is happening during the preboot process
- */
-function logOptions(opts) {
-    console.log('preboot options are:');
-    console.log(opts);
-}
-
-function logEvents(events) {
-    console.log('preboot events captured are:');
-    console.log(events);
-}
-
-function replaySuccess(serverNode, clientNode, event) {
-    console.log('replaying:');
-    console.log({
-        serverNode: serverNode,
-        clientNode: clientNode,
-        event: event
-    });
-}
-
-function missingClientNode(serverNode) {
-    console.log('preboot could not find client node for:');
-    console.log(serverNode);
-}
-
-function remainingEvents(events) {
-    if (events && events.length) {
-        console.log('the following events were not replayed:');
-        console.log(events);
-    }
-}
-
-var logMap = {
-    '1': logOptions,
-    '2': logEvents,
-    '3': replaySuccess,
-    '4': missingClientNode,
-    '5': remainingEvents
-};
-
-function log() {
-    if (!arguments.length) { return; }
-
-    var id = arguments[0] + '';
-    var fn = logMap[id];
-
-    if (fn) {
-        var args = arguments.length > 0 ? [].splice.call(arguments, 1) : [];
-        fn.apply(null, args);
-    }
-}
-
-module.exports = {
-    log: log
-};
-},{}],5:[function(require,module,exports){
+},{"./dom":3}],5:[function(require,module,exports){
 /**
  * Author: Jeff Whelpley
  * Date: 6/2/15
@@ -886,7 +825,7 @@ module.exports = {
     done: done
 };
 
-},{"./buffer/buffer_manager":1,"./dom":2,"./event_manager":3,"./log":4}]},{},[5])(5)
+},{"./buffer/buffer_manager":2,"./dom":3,"./event_manager":4,"./log":1}]},{},[5])(5)
 });
 
 preboot.init({"appRoot":"app","freeze":"spinner","replay":[{"name":"rerender"}],"focus":true,"buffer":true,"keyPress":true,"buttonPress":true,"debug":false,"pauseEvent":"PrebootPause","resumeEvent":"PrebootResume","freezeEvent":"PrebootFreeze","listen":[{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["keypress","keyup","keydown"]}},{"name":"selectors","eventsBySelector":{"input[type=\"text\"],textarea":["focusin","focusout"]},"trackFocus":true,"doNotReplay":true},{"name":"selectors","preventDefault":true,"eventsBySelector":{"input[type=\"submit\"],button":["click"]},"dispatchEvent":"PrebootFreeze"}],"freezeStyles":{"overlay":{"className":"preboot-overlay","style":{"position":"absolute","display":"none","zIndex":"9999999","top":"0","left":"0","width":"100%","height":"100%"}},"spinner":{"className":"preboot-spinner","style":{"position":"absolute","display":"none","zIndex":"99999999"}}}});

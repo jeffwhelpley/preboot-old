@@ -212,7 +212,8 @@ function getClientCodeStream(opts) {
     var b = browserify({
         entries: [__dirname + '/../client/preboot_client.js'],
         standalone: 'preboot',
-        basedir: __dirname + '../client'
+        basedir: __dirname + '../client',
+        browserField: false
     });
 
     // add the listen strategy files to the bundle
@@ -249,11 +250,11 @@ function getClientCodeStream(opts) {
 
     // remove the buffer code if we are not calling it
     if (!opts.buffer) {
-        b.ignore('./buffer/buffer_manager');
+        b.ignore('./src/client/buffer/buffer_manager.js');  // need to do relative from process.cwd()
     }
 
     if (!opts.debug) {
-        b.ignore('./log');
+        b.ignore('./src/client/log.js');  // need to do relative from process.cwd()
     }
 
     var outputStream = b.bundle()
